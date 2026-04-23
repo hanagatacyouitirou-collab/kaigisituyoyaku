@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会議室予約管理｜ネッツトヨタ三重</title>
+<style>
+  :root{
+    --bg:#f5f2ed;
+    --bg-panel:#ffffff;
+    --ink:#1a2332;
+    --ink-soft:#5a6878;
+    --line:#d8d2c7;
+    --line-soft:#ebe6dc;
+    --accent:#c8511e;
+    --accent-soft:#fbeee4;
+    --booked:#2d5f6e;
+    --booked-soft:#e3ecee;
+    --warn:#b91c3c;
+    --shadow:0 1px 3px rgba(26,35,50,.08), 0 8px 24px rgba(26,35,50,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow-x:hidden}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:14px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+
+  /* ===== ログイン画面 ===== */
+  .login-overlay{
+    position:fixed;inset:0;z-index:100;
+    background:linear-gradient(135deg,#1a2332 0%,#2d3f52 100%);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .login-box{
+    background:var(--bg-panel);
+    padding:40px 36px;
+    border-radius:4px;
+    width:100%;max-width:380px;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
+  }
+  .login-box h1{
+    font-size:20px;font-weight:600;letter-spacing:.05em;
+    text-align:center;margin-bottom:6px;
+  }
+  .login-box .sub{
+    text-align:center;font-size:12px;color:var(--ink-soft);
+    margin-bottom:28px;letter-spacing:.1em;
+  }
+  .login-box input{
+    width:100%;padding:12px 14px;
+    border:1px solid var(--line);border-radius:3px;
+    background:#fafaf7;margin-bottom:14px;
+  }
+  .login-box input:focus{outline:none;border-color:var(--accent);background:#fff}
+  .login-box button{
+    width:100%;padding:12px;
+    background:var(--ink);color:#fff;
+    border-radius:3px;font-weight:500;letter-spacing:.1em;
+    transition:background .2s;
+  }
+  .login-box button:hover{background:var(--accent)}
+  .login-error{color:var(--warn);font-size:12px;text-align:center;margin-top:10px;min-height:18px}
+
+  /* ===== ヘッダー ===== */
+  .header{
+    background:var(--bg-panel);
+    border-bottom:1px solid var(--line);
+    padding:14px 20px;
+    display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:12px;
+    position:sticky;top:0;z-index:10;
+  }
+  .brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .brand .title{font-size:16px;font-weight:600;letter-spacing:.08em}
+  .brand .company{font-size:11px;color:var(--ink-soft);letter-spacing:.15em}
+  .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .btn{
+    padding:7px 14px;border-radius:3px;
+    font-size:12px;letter-spacing:.05em;
+    border:1px solid var(--line);
+    background:var(--bg-panel);
+    transition:all .15s;
+  }
+  .btn:hover{border-color:var(--ink);background:#fafaf7}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn-primary:hover{background:#a8441a;border-color:#a8441a}
+  .btn-danger{color:var(--warn);border-color:var(--line)}
+  .btn-danger:hover{background:var(--warn);border-color:var(--warn);color:#fff}
+
+  /* ===== 日付ナビ ===== */
+  .date-nav{
+    background:var(--bg-panel);
+    border-bottom:1px solid var(--line);
+    padding:10px 20px;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;
+  }
+  .date-display{
+    font-size:18px;font-weight:500;
+    display:flex;align-items:center;gap:10px;
+  }
+  .date-display .weekday{font-size:13px;color:var(--ink-soft);font-weight:400}
+  .date-display .weekday.sun{color:var(--warn)}
+  .date-display .weekday.sat{color:#2563b9}
+  .nav-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .nav-btn{
+    width:32px;height:32px;border-radius:3px;
+    border:1px solid var(--line);background:var(--bg-panel);
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:16px;line-height:1;
+  }
+  .nav-btn:hover{border-color:var(--ink)}
+  .date-picker{
+    padding:6px 10px;border:1px solid var(--line);border-radius:3px;
+    background:var(--bg-panel);
+  }
+  .date-trigger{
+    padding:6px 12px;border:1px solid var(--line);border-radius:3px;
+    background:var(--bg-panel);font-size:13px;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .date-trigger:hover{border-color:var(--ink);background:#fafaf7}
+  .date-trigger::after{content:'▾';font-size:10px;color:var(--ink-soft)}
+
+  /* ===== 月間カレンダー ===== */
+  .cal-pop{
+    position:absolute;z-index:30;
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    box-shadow:0 10px 40px rgba(0,0,0,.15);
+    padding:14px;
+    width:320px;
+    display:none;
+  }
+  .cal-pop.open{display:block}
+  .cal-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .cal-title{font-size:14px;font-weight:600;letter-spacing:.05em}
+  .cal-nav{display:flex;gap:4px}
+  .cal-nav button{
+    width:26px;height:26px;border-radius:3px;
+    border:1px solid var(--line);background:var(--bg-panel);
+    font-size:13px;line-height:1;
+  }
+  .cal-nav button:hover{border-color:var(--ink)}
+  .cal-grid{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    gap:2px;
+  }
+  .cal-wd{
+    text-align:center;font-size:10px;color:var(--ink-soft);
+    padding:6px 0;letter-spacing:.1em;font-weight:500;
+  }
+  .cal-wd.sun{color:var(--warn)}
+  .cal-wd.sat{color:#2563b9}
+  .cal-day{
+    aspect-ratio:1;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:13px;
+    border-radius:3px;
+    cursor:pointer;
+    position:relative;
+    transition:background .12s;
+  }
+  .cal-day:hover{background:var(--accent-soft)}
+  .cal-day.other{color:#c8c2b5;cursor:default}
+  .cal-day.other:hover{background:transparent}
+  .cal-day.today{background:var(--accent-soft);color:var(--accent);font-weight:700}
+  .cal-day.selected{background:var(--accent);color:#fff;font-weight:600}
+  .cal-day.selected:hover{background:var(--accent)}
+  .cal-day.sun{color:var(--warn)}
+  .cal-day.sat{color:#2563b9}
+  .cal-day.selected.sun,.cal-day.selected.sat{color:#fff}
+  .cal-dot{
+    width:4px;height:4px;border-radius:50%;
+    background:var(--booked);
+    position:absolute;bottom:4px;
+  }
+  .cal-day.selected .cal-dot{background:#fff}
+
+  /* ===== メイン ===== */
+  .main{padding:20px;max-width:1600px;margin:0 auto}
+
+  /* ===== タイムテーブル ===== */
+  .schedule-wrap{
+    background:var(--bg-panel);
+    border-radius:4px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .schedule{
+    display:grid;
+    grid-template-columns:60px repeat(7, minmax(130px, 1fr));
+    min-width:1000px;
+  }
+  .sch-header{
+    background:#1a2332;color:#fff;
+    padding:12px 8px;
+    font-size:12px;font-weight:500;letter-spacing:.08em;
+    text-align:center;
+    border-right:1px solid #2d3f52;
+    position:sticky;top:0;z-index:2;
+  }
+  .sch-header:last-child{border-right:none}
+  .sch-header small{display:block;font-size:10px;color:#a8b3c2;margin-top:2px;font-weight:400;letter-spacing:.05em}
+  .sch-time{
+    background:#fafaf7;
+    border-right:1px solid var(--line);
+    border-bottom:1px solid var(--line-soft);
+    padding:0 4px;
+    font-size:10px;color:var(--ink-soft);
+    text-align:right;
+    display:flex;align-items:flex-start;justify-content:flex-end;
+    padding-top:2px;
+    min-height:38px;
+  }
+  .sch-cell{
+    border-right:1px solid var(--line-soft);
+    border-bottom:1px solid var(--line-soft);
+    min-height:38px;
+    position:relative;
+    cursor:pointer;
+    transition:background .12s;
+    padding:2px;
+  }
+  .sch-cell:hover{background:var(--accent-soft)}
+  .sch-cell.booked{
+    background:var(--booked-soft);
+    cursor:pointer;
+  }
+  .sch-cell.booked:hover{background:#d0dde0}
+  .booking{
+    background:var(--booked);
+    color:#fff;
+    padding:4px 6px;
+    border-radius:2px;
+    font-size:11px;
+    line-height:1.3;
+    height:100%;
+    overflow:hidden;
+    display:flex;flex-direction:column;gap:1px;
+    border-left:3px solid var(--accent);
+  }
+  .booking .b-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .booking .b-meta{font-size:10px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .booking.continuation{border-left-color:transparent;border-top:none}
+  .sch-cell.booked + .sch-cell.booked .booking{border-top:1px dashed rgba(255,255,255,.2)}
+
+  /* ===== モーダル ===== */
+  .modal-overlay{
+    position:fixed;inset:0;z-index:50;
+    background:rgba(26,35,50,.5);
+    display:none;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .modal-overlay.open{display:flex}
+  .modal{
+    background:var(--bg-panel);
+    border-radius:4px;
+    width:100%;max-width:480px;
+    max-height:90vh;overflow-y:auto;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
+  }
+  .modal-header{
+    padding:18px 22px;
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .modal-header h2{font-size:15px;font-weight:600;letter-spacing:.05em}
+  .modal-close{
+    width:28px;height:28px;border-radius:3px;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:18px;color:var(--ink-soft);
+  }
+  .modal-close:hover{background:var(--bg)}
+  .modal-body{padding:22px}
+  .form-row{margin-bottom:16px}
+  .form-row label{
+    display:block;font-size:11px;color:var(--ink-soft);
+    letter-spacing:.1em;margin-bottom:6px;font-weight:500;
+  }
+  .form-row input,.form-row select,.form-row textarea{
+    width:100%;padding:9px 12px;
+    border:1px solid var(--line);border-radius:3px;
+    background:#fafaf7;
+  }
+  .form-row input:focus,.form-row select:focus,.form-row textarea:focus{
+    outline:none;border-color:var(--accent);background:#fff;
+  }
+  .form-row textarea{resize:vertical;min-height:60px}
+  .form-row-split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .modal-footer{
+    padding:14px 22px;
+    border-top:1px solid var(--line);
+    display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
+  }
+  .conflict-warning{
+    background:#fef2f3;border:1px solid #f5c5ce;
+    color:var(--warn);
+    padding:10px 12px;border-radius:3px;
+    font-size:12px;margin-bottom:14px;
+    display:none;
+  }
+  .conflict-warning.show{display:block}
+
+  /* ===== 検索パネル ===== */
+  .search-panel{
+    position:fixed;top:0;right:-400px;
+    width:380px;height:100vh;
+    background:var(--bg-panel);
+    border-left:1px solid var(--line);
+    box-shadow:-5px 0 20px rgba(0,0,0,.1);
+    z-index:40;
+    transition:right .25s;
+    display:flex;flex-direction:column;
+  }
+  .search-panel.open{right:0}
+  .search-header{
+    padding:18px 20px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .search-body{padding:16px 20px;overflow-y:auto;flex:1}
+  .search-input{
+    width:100%;padding:10px 12px;
+    border:1px solid var(--line);border-radius:3px;
+    background:#fafaf7;margin-bottom:14px;
+  }
+  .search-input:focus{outline:none;border-color:var(--accent);background:#fff}
+  .search-results{display:flex;flex-direction:column;gap:8px}
+  .search-item{
+    padding:10px 12px;border:1px solid var(--line-soft);
+    border-radius:3px;background:#fafaf7;
+    cursor:pointer;transition:all .15s;
+  }
+  .search-item:hover{border-color:var(--accent);background:#fff}
+  .search-item .s-date{font-size:11px;color:var(--accent);font-weight:600;letter-spacing:.05em}
+  .search-item .s-title{font-size:13px;font-weight:500;margin-top:2px}
+  .search-item .s-meta{font-size:11px;color:var(--ink-soft);margin-top:3px}
+  .search-empty{text-align:center;color:var(--ink-soft);font-size:12px;padding:30px 0}
+
+  /* ===== トースト ===== */
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;
+    padding:10px 20px;border-radius:3px;
+    font-size:13px;letter-spacing:.05em;
+    box-shadow:0 8px 24px rgba(0,0,0,.2);
+    z-index:200;
+    opacity:0;pointer-events:none;
+    transition:opacity .2s, transform .2s;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-8px)}
+
+  /* ===== スマホ対応 ===== */
+  @media (max-width:768px){
+    .header{padding:10px 14px}
+    .brand .title{font-size:14px}
+    .brand .company{font-size:10px}
+    .date-nav{padding:8px 14px}
+    .date-display{font-size:15px}
+    .main{padding:10px}
+    .schedule{grid-template-columns:50px repeat(7, minmax(110px, 1fr))}
+    .sch-header{padding:8px 4px;font-size:10px}
+    .sch-header small{font-size:9px}
+    .sch-time{font-size:9px}
+    .booking{font-size:10px;padding:3px 4px}
+    .booking .b-meta{font-size:9px}
+    .search-panel{width:100%;right:-100%}
+    .form-row-split{grid-template-columns:1fr}
+  }
+
+  /* ===== 注釈エリア ===== */
+  .footnote{
+    max-width:1600px;margin:20px auto 0;padding:0 20px 30px;
+    font-size:11px;color:var(--ink-soft);line-height:1.7;
+  }
+  .footnote strong{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ログイン画面 -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h1>会議室予約管理</h1>
+    <p class="sub">NETZ TOYOTA MIE</p>
+    <input type="password" id="loginPassword" placeholder="パスワードを入力" autofocus>
+    <button onclick="doLogin()">ログイン</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ヘッダー -->
+<header class="header">
+  <div class="brand">
+    <div class="title">会議室予約管理</div>
+    <div class="company">NETZ TOYOTA MIE</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-primary" onclick="openNewFromButton()">＋ 新規予約</button>
+    <button class="btn" onclick="openSearch()">🔍 検索</button>
+    <button class="btn" onclick="exportCSV()">CSV出力</button>
+    <button class="btn" onclick="goToday()">今日</button>
+    <button class="btn" onclick="reimportData()" title="令和8年4月の取込データを再読込">↻ 取込データ再読込</button>
+    <button class="btn btn-danger" onclick="doLogout()">ログアウト</button>
+  </div>
+</header>
+
+<!-- 日付ナビ -->
+<div class="date-nav">
+  <div class="date-display" id="dateDisplay"></div>
+  <div class="nav-controls" style="position:relative">
+    <button class="nav-btn" onclick="changeDate(-7)" title="1週間前">«</button>
+    <button class="nav-btn" onclick="changeDate(-1)" title="前日">‹</button>
+    <button class="date-trigger" id="dateTrigger" onclick="toggleCalendar(event)">
+      <span id="dateTriggerLabel">日付選択</span>
+    </button>
+    <button class="nav-btn" onclick="changeDate(1)" title="翌日">›</button>
+    <button class="nav-btn" onclick="changeDate(7)" title="1週間後">»</button>
+    <div class="cal-pop" id="calPop" onclick="event.stopPropagation()"></div>
+  </div>
+</div>
+
+<!-- メイン -->
+<main class="main">
+  <div class="schedule-wrap">
+    <div class="schedule" id="schedule"></div>
+  </div>
+
+  <div class="footnote">
+    <p><strong>使用ルール</strong>：使用責任者とは、入力者名ではなく予約重複時などに対応できる使用者本人のお名前です。使用責任者は、準備や後片付けなど使用マナーの徹底をお願いします。</p>
+    <p style="margin-top:8px"><strong>操作方法</strong>：空いているセルをクリックすると予約入力ができます。既存の予約をクリックすると編集・削除ができます。時間帯は30分刻みで、複数コマにわたる予約も一度に登録できます。</p>
+  </div>
+</main>
+
+<!-- 予約モーダル -->
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">新規予約</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="conflict-warning" id="conflictWarning"></div>
+      <div class="form-row">
+        <label>会議室</label>
+        <select id="f-room"></select>
+      </div>
+      <div class="form-row-split">
+        <div class="form-row" style="margin-bottom:0">
+          <label>開始時刻</label>
+          <select id="f-start"></select>
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>終了時刻</label>
+          <select id="f-end"></select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:16px">
+        <label>使用責任者 <span style="color:var(--warn)">*</span></label>
+        <input type="text" id="f-user" placeholder="例：営企：渡辺">
+      </div>
+      <div class="form-row">
+        <label>使用内容 <span style="color:var(--warn)">*</span></label>
+        <select id="f-purpose" onchange="onPurposeChange()">
+          <option value="">-- 選択してください --</option>
+          <option value="会議">会議</option>
+          <option value="ミーティング">ミーティング</option>
+          <option value="来客">来客</option>
+          <option value="Web会議">Web会議</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="form-row" id="purposeOtherRow" style="display:none">
+        <label>使用内容（自由入力）</label>
+        <input type="text" id="f-purpose-other" placeholder="例：新入社員研修">
+      </div>
+      <div class="form-row">
+        <label>備考（任意）</label>
+        <textarea id="f-memo" placeholder="来客名・必要機材など"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="deleteBtn" onclick="deleteBooking()" style="display:none">削除</button>
+      <button class="btn" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveBooking()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 検索パネル -->
+<div class="search-panel" id="searchPanel">
+  <div class="search-header">
+    <h2 style="font-size:14px;font-weight:600;letter-spacing:.05em">予約検索</h2>
+    <button class="modal-close" onclick="closeSearch()">×</button>
+  </div>
+  <div class="search-body">
+    <input type="text" class="search-input" id="searchInput" placeholder="使用責任者・内容・備考で検索..." oninput="doSearch()">
+    <div class="search-results" id="searchResults">
+      <div class="search-empty">キーワードを入力すると過去〜将来の全予約から検索します</div>
+    </div>
+  </div>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// 設定
+// ============================================================
+const PASSWORD = '44801';  // ← 全社共通パスワード。運用時に変更してください
+const ROOMS = [
+  '大会議室','第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ','リクルート室',
+  '新サービス工場2F','役員室','ZOOM ①','ZOOM ②'
+];
+const TIME_SLOTS = [];
+// 9:30 〜 18:30 の30分刻み
+for(let h=9; h<=18; h++){
+  for(let m of [0,30]){
+    if(h===9 && m===0) continue;
+    if(h===18 && m===30){
+      TIME_SLOTS.push('18:30～'); continue;
+    }
+    TIME_SLOTS.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+  }
+}
+const STORAGE_KEY = 'netzmie_room_bookings_v1';
+const SESSION_KEY = 'netzmie_room_session';
+// ============================================================
+// 令和8年4月 Excel取込データ（初期値）
+// ============================================================
+const INITIAL_IMPORT_DATA = {"2026-04-01":[{"room":"大会議室","start":"11:00","end":"11:30","user":"入社式","purpose":"その他","memo":"入社式","id":"b_import_001","createdAt":1745280000001},{"room":"大会議室","start":"12:30","end":"13:00","user":"（記載なし）","purpose":"その他","memo":"新入社員研修","id":"b_import_002","createdAt":1745280000002},{"room":"大会議室","start":"14:30","end":"15:00","user":"終日","purpose":"その他","memo":"終日","id":"b_import_003","createdAt":1745280000003},{"room":"リクルート室","start":"10:00","end":"10:30","user":"経理","purpose":"その他","memo":"経理　村井","id":"b_import_004","createdAt":1745280000004},{"room":"リクルート室","start":"15:30","end":"16:30","user":"セコム","purpose":"その他","memo":"セコム 15:30～　　総務","id":"b_import_005","createdAt":1745280000005},{"room":"新サービス工場2F","start":"12:00","end":"12:30","user":"総務G","purpose":"その他","memo":"総務G","id":"b_import_006","createdAt":1745280000006},{"room":"新サービス工場2F","start":"12:00","end":"15:00","user":"（記載なし）","purpose":"その他","memo":"12：00－15：00","id":"b_import_007","createdAt":1745280000007},{"room":"新サービス工場2F","start":"15:00","end":"16:00","user":"北畑","purpose":"来客","memo":"来客 北畑 １５：００－１６：００","id":"b_import_008","createdAt":1745280000008}],"2026-04-02":[{"room":"大会議室","start":"11:30","end":"12:00","user":"（記載なし）","purpose":"その他","memo":"新入社員研修","id":"b_import_009","createdAt":1745280000009},{"room":"大会議室","start":"13:00","end":"13:30","user":"終日","purpose":"その他","memo":"終日","id":"b_import_010","createdAt":1745280000010},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"13:30","end":"14:00","user":"渡辺","purpose":"その他","memo":"渡辺","id":"b_import_011","createdAt":1745280000011},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"17:30","end":"18:00","user":"新入社員","purpose":"その他","memo":"新入社員","id":"b_import_012","createdAt":1745280000012},{"room":"リクルート室","start":"13:00","end":"13:30","user":"（記載なし）","purpose":"ミーティング","memo":"中勢ブロックﾐｰﾃｨﾝｸﾞ","id":"b_import_013","createdAt":1745280000013},{"room":"リクルート室","start":"15:00","end":"15:30","user":"中西","purpose":"その他","memo":"中西","id":"b_import_014","createdAt":1745280000014},{"room":"リクルート室","start":"17:00","end":"18:30","user":"大和ハウス工業","purpose":"その他","memo":"17:00～ 大和ハウス工業 長太","id":"b_import_015","createdAt":1745280000015},{"room":"新サービス工場2F","start":"10:30","end":"11:00","user":"津北店ＰＪ","purpose":"その他","memo":"津北店ＰＪ","id":"b_import_016","createdAt":1745280000016},{"room":"ZOOM ②","start":"13:00","end":"13:30","user":"（記載なし）","purpose":"ミーティング","memo":"中勢ブロックﾐｰﾃｨﾝｸﾞ","id":"b_import_017","createdAt":1745280000017},{"room":"ZOOM ②","start":"15:00","end":"15:30","user":"中西","purpose":"その他","memo":"中西","id":"b_import_018","createdAt":1745280000018}],"2026-04-03":[{"room":"大会議室","start":"11:30","end":"12:00","user":"（記載なし）","purpose":"その他","memo":"新入社員研修","id":"b_import_019","createdAt":1745280000019},{"room":"大会議室","start":"13:00","end":"13:30","user":"終日","purpose":"その他","memo":"終日","id":"b_import_020","createdAt":1745280000020},{"room":"大会議室","start":"14:00","end":"15:00","user":"渡辺","purpose":"その他","memo":"渡辺 １４：００－１５：００","id":"b_import_021","createdAt":1745280000021},{"room":"リクルート室","start":"10:30","end":"12:00","user":"オルタナティブTec","purpose":"その他","memo":"10:30～ オルタナティブTec 渡辺","id":"b_import_022","createdAt":1745280000022},{"room":"リクルート室","start":"14:00","end":"15:30","user":"松本","purpose":"その他","memo":"会社説明会 14:00～15:30 松本","id":"b_import_023","createdAt":1745280000023},{"room":"新サービス工場2F","start":"09:30","end":"10:00","user":"（記載なし）","purpose":"会議","memo":"ﾊﾞﾘｭｰリーダー会議","id":"b_import_024","createdAt":1745280000024},{"room":"新サービス工場2F","start":"10:30","end":"11:00","user":"中西","purpose":"その他","memo":"中西","id":"b_import_025","createdAt":1745280000025},{"room":"ZOOM ②","start":"14:00","end":"15:30","user":"松本","purpose":"その他","memo":"会社説明会 14:00～15:30 松本","id":"b_import_026","createdAt":1745280000026}],"2026-04-04":[{"room":"大会議室","start":"11:30","end":"12:00","user":"（記載なし）","purpose":"その他","memo":"新入社員研修","id":"b_import_027","createdAt":1745280000027},{"room":"大会議室","start":"13:00","end":"13:30","user":"終日","purpose":"その他","memo":"終日","id":"b_import_028","createdAt":1745280000028},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"10:00","end":"10:30","user":"（記載なし）","purpose":"来客","memo":"来客","id":"b_import_029","createdAt":1745280000029},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"11:30","end":"12:30","user":"TMP","purpose":"その他","memo":"TMP 水本","id":"b_import_030","createdAt":1745280000030},{"room":"リクルート室","start":"10:00","end":"12:30","user":"経理Ｇ：西川","purpose":"その他","memo":"山中先生 10：00～12：30 経理Ｇ：西川","id":"b_import_031","createdAt":1745280000031},{"room":"リクルート室","start":"17:00","end":"18:00","user":"矢田君面談17：00～","purpose":"その他","memo":"矢田君面談17：00～ サービスG岡村","id":"b_import_032","createdAt":1745280000032}],"2026-04-05":[{"room":"大会議室","start":"18:00","end":"18:30","user":"職場会","purpose":"その他","memo":"職場会","id":"b_import_033","createdAt":1745280000033},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"10:00","end":"11:00","user":"採用面接","purpose":"その他","memo":"採用面接 総務G","id":"b_import_034","createdAt":1745280000034},{"room":"リクルート室","start":"10:00","end":"12:30","user":"経理G：西川","purpose":"その他","memo":"打ち合わせ 10：00～12：30 経理G：西川","id":"b_import_035","createdAt":1745280000035}],"2026-04-08":[{"room":"大会議室","start":"10:00","end":"10:30","user":"防災訓練","purpose":"その他","memo":"防災訓練","id":"b_import_036","createdAt":1745280000036},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"10:30","end":"11:30","user":"南勢ブロックMT","purpose":"ミーティング","memo":"南勢ブロックMT 閑﨑","id":"b_import_037","createdAt":1745280000037},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"13:30","end":"14:00","user":"渡辺","purpose":"来客","memo":"渡辺　来客","id":"b_import_038","createdAt":1745280000038},{"room":"リクルート室","start":"10:30","end":"11:30","user":"Jms","purpose":"ミーティング","memo":"Jms MT 10:30～","id":"b_import_039","createdAt":1745280000039},{"room":"ZOOM ②","start":"11:30","end":"12:00","user":"（記載なし）","purpose":"会議","memo":"南勢ブロック会議","id":"b_import_040","createdAt":1745280000040}],"2026-04-09":[{"room":"大会議室","start":"09:30","end":"10:30","user":"ハートフルネッツ","purpose":"ミーティング","memo":"ハートフルネッツ ミーティング","id":"b_import_041","createdAt":1745280000041},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"13:30","end":"14:00","user":"渡辺","purpose":"その他","memo":"渡辺","id":"b_import_042","createdAt":1745280000042},{"room":"ZOOM ②","start":"16:00","end":"17:30","user":"総務","purpose":"会議","memo":"県内代表者会議 16:00～17:30 総務","id":"b_import_043","createdAt":1745280000043}],"2026-04-10":[{"room":"大会議室","start":"09:30","end":"10:30","user":"ハートフルネッツ","purpose":"ミーティング","memo":"ハートフルネッツ ミーティング","id":"b_import_044","createdAt":1745280000044},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"10:30","end":"11:30","user":"北勢ブロックMT","purpose":"ミーティング","memo":"北勢ブロックMT 閑﨑","id":"b_import_045","createdAt":1745280000045},{"room":"リクルート室","start":"10:30","end":"12:30","user":"保険講習","purpose":"その他","memo":"保険講習 10:30～12:30 バリューチェーンＧ 大坪","id":"b_import_046","createdAt":1745280000046},{"room":"ZOOM ②","start":"10:30","end":"11:00","user":"（記載なし）","purpose":"会議","memo":"北勢ブロック会議","id":"b_import_047","createdAt":1745280000047}],"2026-04-11":[{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"10:30","end":"11:00","user":"渡辺","purpose":"その他","memo":"渡辺","id":"b_import_048","createdAt":1745280000048},{"room":"リクルート室","start":"10:30","end":"12:00","user":"松本","purpose":"その他","memo":"会社説明会 10:30～12:00 松本","id":"b_import_049","createdAt":1745280000049}],"2026-04-12":[{"room":"リクルート室","start":"14:00","end":"15:30","user":"松本","purpose":"その他","memo":"会社説明会 14:00～15:30 松本","id":"b_import_050","createdAt":1745280000050},{"room":"ZOOM ②","start":"14:00","end":"15:30","user":"松本","purpose":"その他","memo":"会社説明会 14:00～15:30 松本","id":"b_import_051","createdAt":1745280000051}],"2026-04-14":[{"room":"大会議室","start":"09:30","end":"10:30","user":"ミエイチ人財育成","purpose":"その他","memo":"ミエイチ人財育成 ミーテイング","id":"b_import_052","createdAt":1745280000052},{"room":"大会議室","start":"11:30","end":"12:00","user":"中西","purpose":"その他","memo":"中西","id":"b_import_053","createdAt":1745280000053},{"room":"リクルート室","start":"14:00","end":"15:00","user":"打合せ","purpose":"その他","memo":"打合せ 総務","id":"b_import_054","createdAt":1745280000054}],"2026-04-16":[{"room":"大会議室","start":"10:00","end":"11:30","user":"関戸","purpose":"会議","memo":"サ・マネージャ会議 ＡＭ 関戸","id":"b_import_055","createdAt":1745280000055},{"room":"大会議室","start":"17:30","end":"18:00","user":"総務G","purpose":"Web会議","memo":"総務G　WEB","id":"b_import_056","createdAt":1745280000056},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"10:00","end":"10:30","user":"総務G","purpose":"その他","memo":"総務G","id":"b_import_057","createdAt":1745280000057},{"room":"リクルート室","start":"13:00","end":"14:00","user":"（記載なし）","purpose":"その他","memo":"M面談尾鷲 13:00～14:00","id":"b_import_058","createdAt":1745280000058},{"room":"ZOOM ②","start":"10:00","end":"11:00","user":"総務渡辺","purpose":"その他","memo":"総務渡辺 打ち合わせ","id":"b_import_059","createdAt":1745280000059}],"2026-04-17":[{"room":"大会議室","start":"13:30","end":"14:30","user":"ＪＡ三重信連","purpose":"その他","memo":"ＪＡ三重信連 経理　村井","id":"b_import_060","createdAt":1745280000060},{"room":"リクルート室","start":"14:00","end":"15:30","user":"SECOM","purpose":"その他","memo":"14:00～ SECOM 長太","id":"b_import_061","createdAt":1745280000061},{"room":"リクルート室","start":"16:30","end":"18:00","user":"（記載なし）","purpose":"その他","memo":"M面談津 16:30～18:00","id":"b_import_062","createdAt":1745280000062}],"2026-04-18":[{"room":"大会議室","start":"09:30","end":"10:00","user":"ミエイチ人財育成MT","purpose":"ミーティング","memo":"ミエイチ人財育成MT","id":"b_import_063","createdAt":1745280000063},{"room":"大会議室","start":"12:00","end":"12:30","user":"中西","purpose":"その他","memo":"中西","id":"b_import_064","createdAt":1745280000064},{"room":"大会議室","start":"13:30","end":"14:30","user":"総務","purpose":"ミーティング","memo":"TSミーティング 総務","id":"b_import_065","createdAt":1745280000065},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"10:00","end":"12:30","user":"経理Ｇ：西川","purpose":"その他","memo":"山中先生 経理Ｇ：西川 10：00～12：30","id":"b_import_066","createdAt":1745280000066},{"room":"リクルート室","start":"10:30","end":"12:00","user":"松本","purpose":"その他","memo":"会社説明会 10:30～12:00 松本","id":"b_import_067","createdAt":1745280000067},{"room":"リクルート室","start":"15:00","end":"16:30","user":"松本","purpose":"その他","memo":"会社説明会 15:00～16:30 松本 渡辺","id":"b_import_068","createdAt":1745280000068},{"room":"ZOOM ②","start":"10:30","end":"12:00","user":"松本","purpose":"その他","memo":"会社説明会 10:30～12:00 松本","id":"b_import_069","createdAt":1745280000069}],"2026-04-19":[{"room":"大会議室","start":"10:00","end":"10:30","user":"採用試験","purpose":"その他","memo":"採用試験 10:00～10:30　松本","id":"b_import_070","createdAt":1745280000070},{"room":"リクルート室","start":"10:00","end":"10:30","user":"採用試験","purpose":"その他","memo":"採用試験 10:00～10:30　松本","id":"b_import_071","createdAt":1745280000071},{"room":"リクルート室","start":"14:00","end":"15:30","user":"松本","purpose":"その他","memo":"会社説明会 14:00～15:30 松本","id":"b_import_072","createdAt":1745280000072}],"2026-04-22":[{"room":"大会議室","start":"10:00","end":"12:00","user":"関連事業・BR農業","purpose":"その他","memo":"関連事業・BR農業 10:00～12:00","id":"b_import_073","createdAt":1745280000073},{"room":"大会議室","start":"14:00","end":"14:30","user":"（記載なし）","purpose":"会議","memo":"経営会議","id":"b_import_074","createdAt":1745280000074},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"13:30","end":"16:00","user":"岡田","purpose":"その他","memo":"通信研修 岡田 13:30～16:00","id":"b_import_075","createdAt":1745280000075},{"room":"リクルート室","start":"10:30","end":"11:00","user":"渡辺","purpose":"来客","memo":"渡辺　来客","id":"b_import_076","createdAt":1745280000076},{"room":"リクルート室","start":"14:00","end":"15:30","user":"松本","purpose":"その他","memo":"会社説明会 14:00～15:30 松本","id":"b_import_077","createdAt":1745280000077},{"room":"新サービス工場2F","start":"10:30","end":"11:00","user":"（記載なし）","purpose":"その他","memo":"新入社員研修","id":"b_import_078","createdAt":1745280000078},{"room":"新サービス工場2F","start":"09:45","end":"13:30","user":"（記載なし）","purpose":"その他","memo":"9:45～13:30","id":"b_import_079","createdAt":1745280000079},{"room":"ZOOM ①","start":"09:30","end":"10:30","user":"北畑","purpose":"ミーティング","memo":"ミーティング 北畑","id":"b_import_080","createdAt":1745280000080},{"room":"ZOOM ②","start":"13:30","end":"16:00","user":"Web","purpose":"Web会議","memo":"通信研修　Web 岡田 13:30～16:00","id":"b_import_081","createdAt":1745280000081}],"2026-04-23":[{"room":"大会議室","start":"10:00","end":"10:30","user":"（記載なし）","purpose":"会議","memo":"3社会議","id":"b_import_082","createdAt":1745280000082},{"room":"大会議室","start":"14:00","end":"16:00","user":"安全衛生委員会","purpose":"その他","memo":"14:00～ 安全衛生委員会 梅田先生 15:00～","id":"b_import_083","createdAt":1745280000083},{"room":"大会議室","start":"16:30","end":"17:00","user":"（記載なし）","purpose":"会議","memo":"営業会議準備","id":"b_import_084","createdAt":1745280000084},{"room":"リクルート室","start":"10:30","end":"12:00","user":"松本","purpose":"その他","memo":"会社説明会 10:30～12:00 松本","id":"b_import_085","createdAt":1745280000085},{"room":"リクルート室","start":"14:30","end":"15:30","user":"サンパン","purpose":"ミーティング","memo":"ミーティング １４：３０～１５：３０ サンパン","id":"b_import_086","createdAt":1745280000086}],"2026-04-24":[{"room":"大会議室","start":"09:30","end":"10:00","user":"（記載なし）","purpose":"会議","memo":"営業会議","id":"b_import_087","createdAt":1745280000087},{"room":"大会議室","start":"17:00","end":"17:30","user":"渡辺","purpose":"来客","memo":"渡辺　来客　三井","id":"b_import_088","createdAt":1745280000088},{"room":"第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ","start":"14:00","end":"15:00","user":"県庁","purpose":"その他","memo":"県庁 障害者状況","id":"b_import_089","createdAt":1745280000089},{"room":"リクルート室","start":"16:00","end":"17:30","user":"コウセイマネジメント","purpose":"その他","memo":"16:00～ コウセイマネジメント 長太","id":"b_import_090","createdAt":1745280000090}],"2026-04-25":[{"room":"大会議室","start":"13:00","end":"13:30","user":"（記載なし）","purpose":"会議","memo":"県内営業本部長会議","id":"b_import_091","createdAt":1745280000091},{"room":"リクルート室","start":"10:00","end":"11:30","user":"経理Ｇ：西川","purpose":"その他","memo":"打ち合わせ 10：00～11：30 経理Ｇ：西川","id":"b_import_092","createdAt":1745280000092},{"room":"リクルート室","start":"14:00","end":"16:00","user":"（記載なし）","purpose":"ミーティング","memo":"経理TSミーティング 14：00～16：00","id":"b_import_093","createdAt":1745280000093},{"room":"ZOOM ①","start":"12:30","end":"13:00","user":"（記載なし）","purpose":"会議","memo":"県内営業本部長会議","id":"b_import_094","createdAt":1745280000094}],"2026-04-26":[{"room":"リクルート室","start":"14:00","end":"15:30","user":"松本","purpose":"その他","memo":"会社説明会 14:00～15:30 松本","id":"b_import_095","createdAt":1745280000095}],"2026-04-27":[{"room":"大会議室","start":"10:00","end":"12:30","user":"経理Ｇ：西川","purpose":"その他","memo":"山中先生 経理Ｇ：西川 10：00～12：30","id":"b_import_096","createdAt":1745280000096},{"room":"リクルート室","start":"10:30","end":"11:00","user":"総務G","purpose":"その他","memo":"総務G","id":"b_import_097","createdAt":1745280000097},{"room":"リクルート室","start":"09:30","end":"13:30","user":"（記載なし）","purpose":"その他","memo":"９：３０－１３：３０","id":"b_import_098","createdAt":1745280000098},{"room":"新サービス工場2F","start":"10:30","end":"11:00","user":"（記載なし）","purpose":"その他","memo":"新入社員研修","id":"b_import_099","createdAt":1745280000099},{"room":"新サービス工場2F","start":"09:45","end":"13:30","user":"（記載なし）","purpose":"その他","memo":"9:45～13:30","id":"b_import_100","createdAt":1745280000100}]};
+
+
+// ============================================================
+// データ管理（ローカルストレージ）
+// 本番Cloudflare版に載せ替える際は、この部分だけ
+// fetch('/api/bookings')等に置き換えればOK
+// ============================================================
+function loadBookings(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }
+  catch(e){ return {}; }
+}
+function saveBookings(data){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function bookingsForDate(dateStr){
+  const all = loadBookings();
+  return all[dateStr] || [];
+}
+function setBookingsForDate(dateStr, list){
+  const all = loadBookings();
+  if(list.length===0) delete all[dateStr];
+  else all[dateStr] = list;
+  saveBookings(all);
+}
+
+// ============================================================
+// 認証
+// ============================================================
+function doLogin(){
+  const pw = document.getElementById('loginPassword').value;
+  if(pw === PASSWORD){
+    sessionStorage.setItem(SESSION_KEY, '1');
+    document.getElementById('loginOverlay').style.display='none';
+    init();
+  }else{
+    document.getElementById('loginError').textContent = 'パスワードが違います';
+    document.getElementById('loginPassword').value='';
+  }
+}
+function doLogout(){
+  sessionStorage.removeItem(SESSION_KEY);
+  location.reload();
+}
+document.getElementById('loginPassword').addEventListener('keydown',e=>{
+  if(e.key==='Enter') doLogin();
+});
+
+// ============================================================
+// 日付操作
+// ============================================================
+let currentDate = new Date();
+currentDate.setHours(0,0,0,0);
+
+function fmtDate(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtDisplay(d){
+  const wd = ['日','月','火','水','木','金','土'][d.getDay()];
+  const wcls = d.getDay()===0?'sun':(d.getDay()===6?'sat':'');
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日<span class="weekday ${wcls}">（${wd}）</span>`;
+}
+function changeDate(days){
+  currentDate.setDate(currentDate.getDate()+days);
+  renderAll();
+}
+function goToday(){
+  currentDate = new Date();
+  currentDate.setHours(0,0,0,0);
+  renderAll();
+}
+
+// ============================================================
+// 月間カレンダーポップアップ
+// ============================================================
+let calViewYear, calViewMonth;  // カレンダーが今表示している年月
+
+function toggleCalendar(e){
+  e.stopPropagation();
+  const pop = document.getElementById('calPop');
+  if(pop.classList.contains('open')){
+    pop.classList.remove('open');
+    return;
+  }
+  calViewYear = currentDate.getFullYear();
+  calViewMonth = currentDate.getMonth();
+  renderCalendar();
+  // 位置調整：トリガーボタンの下に出す
+  const trigger = document.getElementById('dateTrigger');
+  const rect = trigger.getBoundingClientRect();
+  const navRect = trigger.offsetParent.getBoundingClientRect();
+  pop.style.left = (trigger.offsetLeft) + 'px';
+  pop.style.top = (trigger.offsetTop + trigger.offsetHeight + 4) + 'px';
+  // 画面右端から溢れる場合は右寄せに
+  if(rect.left + 320 > window.innerWidth){
+    pop.style.left = 'auto';
+    pop.style.right = '0px';
+  }else{
+    pop.style.right = 'auto';
+  }
+  pop.classList.add('open');
+}
+
+function closeCalendar(){
+  document.getElementById('calPop').classList.remove('open');
+}
+
+function calNav(delta){
+  calViewMonth += delta;
+  if(calViewMonth < 0){ calViewMonth = 11; calViewYear--; }
+  if(calViewMonth > 11){ calViewMonth = 0; calViewYear++; }
+  renderCalendar();
+}
+
+function renderCalendar(){
+  const pop = document.getElementById('calPop');
+  const firstDay = new Date(calViewYear, calViewMonth, 1);
+  const lastDay = new Date(calViewYear, calViewMonth+1, 0);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = lastDay.getDate();
+  const prevLastDay = new Date(calViewYear, calViewMonth, 0).getDate();
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const selectedStr = fmtDate(currentDate);
+  const allBookings = loadBookings();
+
+  const wdLabels = ['日','月','火','水','木','金','土'];
+  let html = `
+    <div class="cal-head">
+      <div class="cal-title">${calViewYear}年 ${calViewMonth+1}月</div>
+      <div class="cal-nav">
+        <button onclick="calNav(-1)" title="前月">‹</button>
+        <button onclick="calJumpToday()" title="今日">●</button>
+        <button onclick="calNav(1)" title="翌月">›</button>
+      </div>
+    </div>
+    <div class="cal-grid">
+  `;
+  wdLabels.forEach((w,i)=>{
+    const cls = i===0?'sun':(i===6?'sat':'');
+    html += `<div class="cal-wd ${cls}">${w}</div>`;
+  });
+
+  // 前月分の埋め
+  for(let i=0; i<startWeekday; i++){
+    const d = prevLastDay - startWeekday + i + 1;
+    html += `<div class="cal-day other">${d}</div>`;
+  }
+  // 当月分
+  for(let d=1; d<=daysInMonth; d++){
+    const date = new Date(calViewYear, calViewMonth, d);
+    const dateStr = fmtDate(date);
+    const wd = date.getDay();
+    const wdCls = wd===0?'sun':(wd===6?'sat':'');
+    const isToday = date.getTime()===today.getTime();
+    const isSelected = dateStr === selectedStr;
+    const hasBooking = allBookings[dateStr] && allBookings[dateStr].length>0;
+    const classes = ['cal-day', wdCls];
+    if(isToday) classes.push('today');
+    if(isSelected) classes.push('selected');
+    html += `<div class="${classes.join(' ')}" onclick="calSelectDate('${dateStr}')">${d}${hasBooking?'<div class="cal-dot"></div>':''}</div>`;
+  }
+  // 末尾の翌月分（6週表示にするため）
+  const totalCells = startWeekday + daysInMonth;
+  const rest = (7 - totalCells % 7) % 7;
+  for(let i=1; i<=rest; i++){
+    html += `<div class="cal-day other">${i}</div>`;
+  }
+  html += `</div>`;
+  pop.innerHTML = html;
+}
+
+function calSelectDate(dateStr){
+  currentDate = new Date(dateStr);
+  currentDate.setHours(0,0,0,0);
+  closeCalendar();
+  renderAll();
+}
+
+function calJumpToday(){
+  const t = new Date();
+  calViewYear = t.getFullYear();
+  calViewMonth = t.getMonth();
+  renderCalendar();
+}
+
+// ============================================================
+// スケジュール描画
+// ============================================================
+function renderSchedule(){
+  const sched = document.getElementById('schedule');
+  sched.innerHTML = '';
+  const dateStr = fmtDate(currentDate);
+  const bookings = bookingsForDate(dateStr);
+
+  // ヘッダー行：時間列＋各会議室
+  const timeHead = document.createElement('div');
+  timeHead.className='sch-header';
+  timeHead.innerHTML = '時間';
+  sched.appendChild(timeHead);
+  ROOMS.forEach(r=>{
+    const h = document.createElement('div');
+    h.className='sch-header';
+    h.textContent = r;
+    sched.appendChild(h);
+  });
+
+  // 予約マップを作る：[roomIndex][slotIndex] = booking
+  const slotMap = ROOMS.map(()=>new Array(TIME_SLOTS.length).fill(null));
+  bookings.forEach(b=>{
+    const roomIdx = ROOMS.indexOf(b.room);
+    if(roomIdx<0) return;
+    const startIdx = TIME_SLOTS.indexOf(b.start);
+    const endIdx = TIME_SLOTS.indexOf(b.end);
+    if(startIdx<0) return;
+    const fillUntil = endIdx<0 ? TIME_SLOTS.length : endIdx;
+    for(let i=startIdx; i<fillUntil; i++){
+      slotMap[roomIdx][i] = { booking:b, isStart: i===startIdx };
+    }
+  });
+
+  // 時間行
+  TIME_SLOTS.forEach((ts, tIdx)=>{
+    const tc = document.createElement('div');
+    tc.className='sch-time';
+    tc.textContent = ts;
+    sched.appendChild(tc);
+
+    ROOMS.forEach((room, rIdx)=>{
+      const cell = document.createElement('div');
+      cell.className='sch-cell';
+      const slot = slotMap[rIdx][tIdx];
+      if(slot){
+        cell.classList.add('booked');
+        if(slot.isStart){
+          const b = slot.booking;
+          const box = document.createElement('div');
+          box.className='booking';
+          // 何コマ分の高さにするか
+          const startIdx = TIME_SLOTS.indexOf(b.start);
+          const endIdx = TIME_SLOTS.indexOf(b.end);
+          const span = (endIdx<0 ? TIME_SLOTS.length : endIdx) - startIdx;
+          box.style.position='absolute';
+          box.style.top='2px';
+          box.style.left='2px';
+          box.style.right='2px';
+          box.style.height = `calc(${span*100}% - 4px)`;
+          box.style.zIndex='1';
+          box.innerHTML = `
+            <div class="b-title">${escapeHTML(b.purpose)}</div>
+            <div class="b-meta">${escapeHTML(b.user)}</div>
+            ${span>=2?`<div class="b-meta">${b.start}〜${b.end||'終日'}</div>`:''}
+          `;
+          box.onclick = (e)=>{ e.stopPropagation(); openEdit(b); };
+          cell.appendChild(box);
+        }
+        cell.onclick = ()=>openEdit(slot.booking);
+      }else{
+        cell.onclick = ()=>openNew(room, ts);
+      }
+      sched.appendChild(cell);
+    });
+  });
+}
+
+function escapeHTML(s){
+  return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============================================================
+// モーダル
+// ============================================================
+let editingBookingId = null;
+
+function openNew(room, startTime){
+  editingBookingId = null;
+  document.getElementById('modalTitle').textContent = '新規予約';
+  document.getElementById('deleteBtn').style.display='none';
+  fillRoomSelect();
+  fillTimeSelects();
+  document.getElementById('f-room').value = room;
+  document.getElementById('f-start').value = startTime;
+  // デフォルト終了時刻＝開始の1時間後
+  const sIdx = TIME_SLOTS.indexOf(startTime);
+  const eIdx = Math.min(sIdx+2, TIME_SLOTS.length-1);
+  document.getElementById('f-end').value = TIME_SLOTS[eIdx];
+  document.getElementById('f-user').value = '';
+  document.getElementById('f-purpose').value = '';
+  document.getElementById('f-purpose-other').value = '';
+  document.getElementById('purposeOtherRow').style.display = 'none';
+  document.getElementById('f-memo').value = '';
+  document.getElementById('conflictWarning').classList.remove('show');
+  document.getElementById('bookingModal').classList.add('open');
+}
+
+// ヘッダーの「＋新規予約」ボタンから開く（デフォルト：現在表示中の日付、最初の会議室、朝一）
+function openNewFromButton(){
+  openNew(ROOMS[0], TIME_SLOTS[0]);
+}
+
+// 使用内容プルダウンの選択変更時
+function onPurposeChange(){
+  const val = document.getElementById('f-purpose').value;
+  const otherRow = document.getElementById('purposeOtherRow');
+  otherRow.style.display = (val === 'その他') ? 'block' : 'none';
+}
+
+function openEdit(booking){
+  editingBookingId = booking.id;
+  document.getElementById('modalTitle').textContent = '予約編集';
+  document.getElementById('deleteBtn').style.display='inline-block';
+  fillRoomSelect();
+  fillTimeSelects();
+  document.getElementById('f-room').value = booking.room;
+  document.getElementById('f-start').value = booking.start;
+  document.getElementById('f-end').value = booking.end || '18:30～';
+  document.getElementById('f-user').value = booking.user;
+  // 使用内容：既定選択肢にあるか判定、なければ「その他」として自由入力欄にセット
+  const PRESET = ['会議','ミーティング','来客','Web会議'];
+  if(PRESET.includes(booking.purpose)){
+    document.getElementById('f-purpose').value = booking.purpose;
+    document.getElementById('f-purpose-other').value = '';
+    document.getElementById('purposeOtherRow').style.display = 'none';
+  }else{
+    document.getElementById('f-purpose').value = 'その他';
+    document.getElementById('f-purpose-other').value = booking.purpose || '';
+    document.getElementById('purposeOtherRow').style.display = 'block';
+  }
+  document.getElementById('f-memo').value = booking.memo || '';
+  document.getElementById('conflictWarning').classList.remove('show');
+  document.getElementById('bookingModal').classList.add('open');
+}
+
+function closeModal(){
+  document.getElementById('bookingModal').classList.remove('open');
+}
+
+function fillRoomSelect(){
+  const sel = document.getElementById('f-room');
+  sel.innerHTML = ROOMS.map(r=>`<option>${r}</option>`).join('');
+}
+function fillTimeSelects(){
+  const s = document.getElementById('f-start');
+  const e = document.getElementById('f-end');
+  s.innerHTML = TIME_SLOTS.slice(0,-1).map(t=>`<option>${t}</option>`).join('');
+  e.innerHTML = TIME_SLOTS.slice(1).map(t=>`<option>${t}</option>`).join('');
+}
+
+function checkConflict(room, start, end, excludeId){
+  const dateStr = fmtDate(currentDate);
+  const bookings = bookingsForDate(dateStr);
+  const sIdx = TIME_SLOTS.indexOf(start);
+  const eIdx = TIME_SLOTS.indexOf(end);
+  const eFinal = eIdx<0 ? TIME_SLOTS.length : eIdx;
+  for(const b of bookings){
+    if(b.id === excludeId) continue;
+    if(b.room !== room) continue;
+    const bs = TIME_SLOTS.indexOf(b.start);
+    const be = TIME_SLOTS.indexOf(b.end);
+    const beFinal = be<0 ? TIME_SLOTS.length : be;
+    // 重なり判定
+    if(sIdx < beFinal && eFinal > bs){
+      return b;
+    }
+  }
+  return null;
+}
+
+function saveBooking(){
+  const room = document.getElementById('f-room').value;
+  const start = document.getElementById('f-start').value;
+  const end = document.getElementById('f-end').value;
+  const user = document.getElementById('f-user').value.trim();
+  const purposeSelect = document.getElementById('f-purpose').value;
+  // 「その他」の場合は自由入力欄の値を採用
+  const purpose = (purposeSelect === 'その他')
+    ? document.getElementById('f-purpose-other').value.trim()
+    : purposeSelect;
+  const memo = document.getElementById('f-memo').value.trim();
+
+  if(!user){
+    showToast('使用責任者を入力してください');
+    return;
+  }
+  if(!purposeSelect){
+    showToast('使用内容を選択してください');
+    return;
+  }
+  if(purposeSelect === 'その他' && !purpose){
+    showToast('使用内容（自由入力）を入力してください');
+    return;
+  }
+  if(TIME_SLOTS.indexOf(start) >= TIME_SLOTS.indexOf(end)){
+    showToast('終了時刻は開始時刻より後にしてください');
+    return;
+  }
+
+  // 重複チェック
+  const conflict = checkConflict(room, start, end, editingBookingId);
+  if(conflict){
+    const warn = document.getElementById('conflictWarning');
+    warn.innerHTML = `⚠ 同じ会議室ですでに予約があります：<br><strong>${escapeHTML(conflict.start)}〜${escapeHTML(conflict.end)} ${escapeHTML(conflict.purpose)}（${escapeHTML(conflict.user)}）</strong><br>時間帯を変更するか、使用責任者にご相談ください。`;
+    warn.classList.add('show');
+    return;
+  }
+
+  const dateStr = fmtDate(currentDate);
+  const bookings = bookingsForDate(dateStr);
+  if(editingBookingId){
+    const idx = bookings.findIndex(b=>b.id===editingBookingId);
+    if(idx>=0){
+      bookings[idx] = { ...bookings[idx], room, start, end, user, purpose, memo, updatedAt: Date.now() };
+    }
+  }else{
+    bookings.push({
+      id: 'b_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+      room, start, end, user, purpose, memo,
+      createdAt: Date.now()
+    });
+  }
+  setBookingsForDate(dateStr, bookings);
+  closeModal();
+  renderSchedule();
+  showToast(editingBookingId ? '予約を更新しました' : '予約を登録しました');
+}
+
+function deleteBooking(){
+  if(!editingBookingId) return;
+  if(!confirm('この予約を削除しますか？')) return;
+  const dateStr = fmtDate(currentDate);
+  const bookings = bookingsForDate(dateStr).filter(b=>b.id!==editingBookingId);
+  setBookingsForDate(dateStr, bookings);
+  closeModal();
+  renderSchedule();
+  showToast('予約を削除しました');
+}
+
+// ============================================================
+// 検索
+// ============================================================
+function openSearch(){
+  document.getElementById('searchPanel').classList.add('open');
+  document.getElementById('searchInput').focus();
+}
+function closeSearch(){
+  document.getElementById('searchPanel').classList.remove('open');
+}
+function doSearch(){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const results = document.getElementById('searchResults');
+  if(!q){
+    results.innerHTML = '<div class="search-empty">キーワードを入力すると過去〜将来の全予約から検索します</div>';
+    return;
+  }
+  const all = loadBookings();
+  const hits = [];
+  Object.keys(all).sort().forEach(dateStr=>{
+    all[dateStr].forEach(b=>{
+      const hay = `${b.user} ${b.purpose} ${b.memo||''} ${b.room}`.toLowerCase();
+      if(hay.includes(q)) hits.push({dateStr, b});
+    });
+  });
+  if(hits.length===0){
+    results.innerHTML = '<div class="search-empty">該当する予約が見つかりません</div>';
+    return;
+  }
+  results.innerHTML = hits.map(h=>{
+    const d = new Date(h.dateStr);
+    const wd = ['日','月','火','水','木','金','土'][d.getDay()];
+    return `<div class="search-item" onclick="jumpTo('${h.dateStr}', '${h.b.id}')">
+      <div class="s-date">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}（${wd}） ${escapeHTML(h.b.start)}〜${escapeHTML(h.b.end)}</div>
+      <div class="s-title">${escapeHTML(h.b.purpose)}</div>
+      <div class="s-meta">${escapeHTML(h.b.room)} ｜ ${escapeHTML(h.b.user)}</div>
+    </div>`;
+  }).join('');
+}
+function jumpTo(dateStr, bookingId){
+  currentDate = new Date(dateStr);
+  currentDate.setHours(0,0,0,0);
+  closeSearch();
+  renderAll();
+  // 対象予約をハイライト
+  setTimeout(()=>{
+    const bookings = bookingsForDate(dateStr);
+    const b = bookings.find(x=>x.id===bookingId);
+    if(b) openEdit(b);
+  }, 200);
+}
+
+// ============================================================
+// CSVエクスポート
+// ============================================================
+function exportCSV(){
+  const all = loadBookings();
+  const rows = [['日付','会議室','開始','終了','使用責任者','使用内容','備考']];
+  Object.keys(all).sort().forEach(dateStr=>{
+    all[dateStr].forEach(b=>{
+      rows.push([dateStr, b.room, b.start, b.end, b.user, b.purpose, b.memo||'']);
+    });
+  });
+  if(rows.length===1){ showToast('出力する予約データがありません'); return; }
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const bom = '\uFEFF';
+  const blob = new Blob([bom+csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `会議室予約_${fmtDate(new Date())}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSVをダウンロードしました');
+}
+
+// ============================================================
+// トースト
+// ============================================================
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// 初期化
+// ============================================================
+function renderAll(){
+  document.getElementById('dateDisplay').innerHTML = fmtDisplay(currentDate);
+  // 日付トリガーのラベルを更新
+  const d = currentDate;
+  document.getElementById('dateTriggerLabel').textContent =
+    `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  renderSchedule();
+}
+
+function init(){
+  // 令和8年4月の予約データを初期投入（初回のみ）
+  const all = loadBookings();
+  if(Object.keys(all).length===0){
+    saveBookings(INITIAL_IMPORT_DATA);
+    // 初期表示を2026年4月1日に設定（取込データがある日）
+    currentDate = new Date(2026, 3, 1);
+  }
+  renderAll();
+}
+
+// 取込データの再読込（ボタンから呼ぶ）
+function reimportData(){
+  if(!confirm('令和8年4月の取込データを再読込しますか？\n\n※現在入力されている予約データは上書きされます。この操作は元に戻せません。')){
+    return;
+  }
+  saveBookings(INITIAL_IMPORT_DATA);
+  currentDate = new Date(2026, 3, 1);
+  renderAll();
+  showToast('令和8年4月の予約データを再読込しました');
+}
+
+// 全データリセット（管理用）
+function clearAllData(){
+  if(!confirm('全ての予約データを削除しますか？\n\n※この操作は元に戻せません。')){
+    return;
+  }
+  if(!confirm('本当によろしいですか？\n\n全データが完全に削除されます。')){
+    return;
+  }
+  saveBookings({});
+  renderAll();
+  showToast('全データを削除しました');
+}
+
+// セッション確認
+if(sessionStorage.getItem(SESSION_KEY)==='1'){
+  document.getElementById('loginOverlay').style.display='none';
+  init();
+}
+
+// ESCで閉じる
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    closeModal();
+    closeSearch();
+    closeCalendar();
+  }
+});
+
+// 画面外クリックでカレンダーを閉じる
+document.addEventListener('click',e=>{
+  const pop = document.getElementById('calPop');
+  const trigger = document.getElementById('dateTrigger');
+  if(!pop.classList.contains('open')) return;
+  if(pop.contains(e.target) || trigger.contains(e.target)) return;
+  closeCalendar();
+});
+</script>
+
+</body>
+</html>
