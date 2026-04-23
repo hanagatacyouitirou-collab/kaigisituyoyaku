@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会議室予約管理｜ネッツトヨタ三重</title>
+<style>
+  :root{
+    --bg:#f5f2ed;
+    --bg-panel:#ffffff;
+    --ink:#1a2332;
+    --ink-soft:#5a6878;
+    --line:#d8d2c7;
+    --line-soft:#ebe6dc;
+    --accent:#c8511e;
+    --accent-soft:#fbeee4;
+    --booked:#2d5f6e;
+    --booked-soft:#e3ecee;
+    --warn:#b91c3c;
+    --shadow:0 1px 3px rgba(26,35,50,.08), 0 8px 24px rgba(26,35,50,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow-x:hidden}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:14px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+
+  /* ===== ログイン画面 ===== */
+  .login-overlay{
+    position:fixed;inset:0;z-index:100;
+    background:linear-gradient(135deg,#1a2332 0%,#2d3f52 100%);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .login-box{
+    background:var(--bg-panel);
+    padding:40px 36px;
+    border-radius:4px;
+    width:100%;max-width:380px;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
+  }
+  .login-box h1{
+    font-size:20px;font-weight:600;letter-spacing:.05em;
+    text-align:center;margin-bottom:6px;
+  }
+  .login-box .sub{
+    text-align:center;font-size:12px;color:var(--ink-soft);
+    margin-bottom:28px;letter-spacing:.1em;
+  }
+  .login-box input{
+    width:100%;padding:12px 14px;
+    border:1px solid var(--line);border-radius:3px;
+    background:#fafaf7;margin-bottom:14px;
+  }
+  .login-box input:focus{outline:none;border-color:var(--accent);background:#fff}
+  .login-box button{
+    width:100%;padding:12px;
+    background:var(--ink);color:#fff;
+    border-radius:3px;font-weight:500;letter-spacing:.1em;
+    transition:background .2s;
+  }
+  .login-box button:hover{background:var(--accent)}
+  .login-box button:disabled{opacity:.6;cursor:wait}
+  .login-error{color:var(--warn);font-size:12px;text-align:center;margin-top:10px;min-height:18px}
+
+  /* ===== ヘッダー ===== */
+  .header{
+    background:var(--bg-panel);
+    border-bottom:1px solid var(--line);
+    padding:14px 20px;
+    display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:12px;
+    position:sticky;top:0;z-index:10;
+  }
+  .brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .brand .title{font-size:16px;font-weight:600;letter-spacing:.08em}
+  .brand .company{font-size:11px;color:var(--ink-soft);letter-spacing:.15em}
+  .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .btn{
+    padding:7px 14px;border-radius:3px;
+    font-size:12px;letter-spacing:.05em;
+    border:1px solid var(--line);
+    background:var(--bg-panel);
+    transition:all .15s;
+  }
+  .btn:hover{border-color:var(--ink);background:#fafaf7}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn-primary:hover{background:#a8441a;border-color:#a8441a}
+  .btn-danger{color:var(--warn);border-color:var(--line)}
+  .btn-danger:hover{background:var(--warn);border-color:var(--warn);color:#fff}
+
+  /* ===== 日付ナビ ===== */
+  .date-nav{
+    background:var(--bg-panel);
+    border-bottom:1px solid var(--line);
+    padding:10px 20px;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;
+  }
+  .date-display{
+    font-size:18px;font-weight:500;
+    display:flex;align-items:center;gap:10px;
+  }
+  .date-display .weekday{font-size:13px;color:var(--ink-soft);font-weight:400}
+  .date-display .weekday.sun{color:var(--warn)}
+  .date-display .weekday.sat{color:#2563b9}
+  .nav-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .nav-btn{
+    width:32px;height:32px;border-radius:3px;
+    border:1px solid var(--line);background:var(--bg-panel);
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:16px;line-height:1;
+  }
+  .nav-btn:hover{border-color:var(--ink)}
+  .date-picker{
+    padding:6px 10px;border:1px solid var(--line);border-radius:3px;
+    background:var(--bg-panel);
+  }
+  .date-trigger{
+    padding:6px 12px;border:1px solid var(--line);border-radius:3px;
+    background:var(--bg-panel);font-size:13px;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .date-trigger:hover{border-color:var(--ink);background:#fafaf7}
+  .date-trigger::after{content:'▾';font-size:10px;color:var(--ink-soft)}
+
+  /* ===== 月間カレンダー ===== */
+  .cal-pop{
+    position:absolute;z-index:30;
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    box-shadow:0 10px 40px rgba(0,0,0,.15);
+    padding:14px;
+    width:320px;
+    display:none;
+  }
+  .cal-pop.open{display:block}
+  .cal-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .cal-title{font-size:14px;font-weight:600;letter-spacing:.05em}
+  .cal-nav{display:flex;gap:4px}
+  .cal-nav button{
+    width:26px;height:26px;border-radius:3px;
+    border:1px solid var(--line);background:var(--bg-panel);
+    font-size:13px;line-height:1;
+  }
+  .cal-nav button:hover{border-color:var(--ink)}
+  .cal-grid{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    gap:2px;
+  }
+  .cal-wd{
+    text-align:center;font-size:10px;color:var(--ink-soft);
+    padding:6px 0;letter-spacing:.1em;font-weight:500;
+  }
+  .cal-wd.sun{color:var(--warn)}
+  .cal-wd.sat{color:#2563b9}
+  .cal-day{
+    aspect-ratio:1;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:13px;
+    border-radius:3px;
+    cursor:pointer;
+    position:relative;
+    transition:background .12s;
+  }
+  .cal-day:hover{background:var(--accent-soft)}
+  .cal-day.other{color:#c8c2b5;cursor:default}
+  .cal-day.other:hover{background:transparent}
+  .cal-day.today{background:var(--accent-soft);color:var(--accent);font-weight:700}
+  .cal-day.selected{background:var(--accent);color:#fff;font-weight:600}
+  .cal-day.selected:hover{background:var(--accent)}
+  .cal-day.sun{color:var(--warn)}
+  .cal-day.sat{color:#2563b9}
+  .cal-day.selected.sun,.cal-day.selected.sat{color:#fff}
+  .cal-dot{
+    width:4px;height:4px;border-radius:50%;
+    background:var(--booked);
+    position:absolute;bottom:4px;
+  }
+  .cal-day.selected .cal-dot{background:#fff}
+
+  /* ===== メイン ===== */
+  .main{padding:20px;max-width:1600px;margin:0 auto;position:relative}
+
+  /* ===== ローディング ===== */
+  .loading{
+    position:absolute;top:40px;left:50%;transform:translateX(-50%);
+    padding:8px 20px;border-radius:3px;
+    background:var(--ink);color:#fff;font-size:12px;
+    z-index:5;
+    opacity:0;transition:opacity .2s;
+    pointer-events:none;
+  }
+  .loading.show{opacity:.9}
+
+  /* ===== タイムテーブル ===== */
+  .schedule-wrap{
+    background:var(--bg-panel);
+    border-radius:4px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .schedule{
+    display:grid;
+    grid-template-columns:60px repeat(7, minmax(130px, 1fr));
+    min-width:1000px;
+  }
+  .sch-header{
+    background:#1a2332;color:#fff;
+    padding:12px 8px;
+    font-size:12px;font-weight:500;letter-spacing:.08em;
+    text-align:center;
+    border-right:1px solid #2d3f52;
+    position:sticky;top:0;z-index:2;
+  }
+  .sch-header:last-child{border-right:none}
+  .sch-header small{display:block;font-size:10px;color:#a8b3c2;margin-top:2px;font-weight:400;letter-spacing:.05em}
+  .sch-time{
+    background:#fafaf7;
+    border-right:1px solid var(--line);
+    border-bottom:1px solid var(--line-soft);
+    padding:0 4px;
+    font-size:10px;color:var(--ink-soft);
+    text-align:right;
+    display:flex;align-items:flex-start;justify-content:flex-end;
+    padding-top:2px;
+    min-height:38px;
+  }
+  .sch-cell{
+    border-right:1px solid var(--line-soft);
+    border-bottom:1px solid var(--line-soft);
+    min-height:38px;
+    position:relative;
+    cursor:pointer;
+    transition:background .12s;
+    padding:2px;
+  }
+  .sch-cell:hover{background:var(--accent-soft)}
+  .sch-cell.booked{
+    background:var(--booked-soft);
+    cursor:pointer;
+  }
+  .sch-cell.booked:hover{background:#d0dde0}
+  .booking{
+    background:var(--booked);
+    color:#fff;
+    padding:4px 6px;
+    border-radius:2px;
+    font-size:11px;
+    line-height:1.3;
+    height:100%;
+    overflow:hidden;
+    display:flex;flex-direction:column;gap:1px;
+    border-left:3px solid var(--accent);
+  }
+  .booking .b-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .booking .b-meta{font-size:10px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* ===== モーダル ===== */
+  .modal-overlay{
+    position:fixed;inset:0;z-index:50;
+    background:rgba(26,35,50,.5);
+    display:none;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .modal-overlay.open{display:flex}
+  .modal{
+    background:var(--bg-panel);
+    border-radius:4px;
+    width:100%;max-width:480px;
+    max-height:90vh;overflow-y:auto;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
+  }
+  .modal-header{
+    padding:18px 22px;
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .modal-header h2{font-size:15px;font-weight:600;letter-spacing:.05em}
+  .modal-close{
+    width:28px;height:28px;border-radius:3px;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:18px;color:var(--ink-soft);
+  }
+  .modal-close:hover{background:var(--bg)}
+  .modal-body{padding:22px}
+  .form-row{margin-bottom:16px}
+  .form-row label{
+    display:block;font-size:11px;color:var(--ink-soft);
+    letter-spacing:.1em;margin-bottom:6px;font-weight:500;
+  }
+  .form-row input,.form-row select,.form-row textarea{
+    width:100%;padding:9px 12px;
+    border:1px solid var(--line);border-radius:3px;
+    background:#fafaf7;
+  }
+  .form-row input:focus,.form-row select:focus,.form-row textarea:focus{
+    outline:none;border-color:var(--accent);background:#fff;
+  }
+  .form-row textarea{resize:vertical;min-height:60px}
+  .form-row-split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .modal-footer{
+    padding:14px 22px;
+    border-top:1px solid var(--line);
+    display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
+  }
+  .conflict-warning{
+    background:#fef2f3;border:1px solid #f5c5ce;
+    color:var(--warn);
+    padding:10px 12px;border-radius:3px;
+    font-size:12px;margin-bottom:14px;
+    display:none;
+  }
+  .conflict-warning.show{display:block}
+
+  /* ===== 検索パネル ===== */
+  .search-panel{
+    position:fixed;top:0;right:-400px;
+    width:380px;height:100vh;
+    background:var(--bg-panel);
+    border-left:1px solid var(--line);
+    box-shadow:-5px 0 20px rgba(0,0,0,.1);
+    z-index:40;
+    transition:right .25s;
+    display:flex;flex-direction:column;
+  }
+  .search-panel.open{right:0}
+  .search-header{
+    padding:18px 20px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .search-body{padding:16px 20px;overflow-y:auto;flex:1}
+  .search-input{
+    width:100%;padding:10px 12px;
+    border:1px solid var(--line);border-radius:3px;
+    background:#fafaf7;margin-bottom:14px;
+  }
+  .search-input:focus{outline:none;border-color:var(--accent);background:#fff}
+  .search-results{display:flex;flex-direction:column;gap:8px}
+  .search-item{
+    padding:10px 12px;border:1px solid var(--line-soft);
+    border-radius:3px;background:#fafaf7;
+    cursor:pointer;transition:all .15s;
+  }
+  .search-item:hover{border-color:var(--accent);background:#fff}
+  .search-item .s-date{font-size:11px;color:var(--accent);font-weight:600;letter-spacing:.05em}
+  .search-item .s-title{font-size:13px;font-weight:500;margin-top:2px}
+  .search-item .s-meta{font-size:11px;color:var(--ink-soft);margin-top:3px}
+  .search-empty{text-align:center;color:var(--ink-soft);font-size:12px;padding:30px 0}
+  .search-loading{text-align:center;color:var(--ink-soft);font-size:12px;padding:20px 0}
+
+  /* ===== トースト ===== */
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;
+    padding:10px 20px;border-radius:3px;
+    font-size:13px;letter-spacing:.05em;
+    box-shadow:0 8px 24px rgba(0,0,0,.2);
+    z-index:200;
+    opacity:0;pointer-events:none;
+    transition:opacity .2s, transform .2s;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-8px)}
+  .toast.error{background:var(--warn)}
+
+  /* ===== スマホ対応 ===== */
+  @media (max-width:768px){
+    .header{padding:10px 14px}
+    .brand .title{font-size:14px}
+    .brand .company{font-size:10px}
+    .date-nav{padding:8px 14px}
+    .date-display{font-size:15px}
+    .main{padding:10px}
+    .schedule{grid-template-columns:50px repeat(7, minmax(110px, 1fr))}
+    .sch-header{padding:8px 4px;font-size:10px}
+    .sch-header small{font-size:9px}
+    .sch-time{font-size:9px}
+    .booking{font-size:10px;padding:3px 4px}
+    .booking .b-meta{font-size:9px}
+    .search-panel{width:100%;right:-100%}
+    .form-row-split{grid-template-columns:1fr}
+  }
+
+  /* ===== 注釈エリア ===== */
+  .footnote{
+    max-width:1600px;margin:20px auto 0;padding:0 20px 30px;
+    font-size:11px;color:var(--ink-soft);line-height:1.7;
+  }
+  .footnote strong{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ログイン画面 -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h1>会議室予約管理</h1>
+    <p class="sub">NETZ TOYOTA MIE</p>
+    <input type="password" id="loginPassword" placeholder="パスワードを入力" autofocus>
+    <button id="loginBtn" onclick="doLogin()">ログイン</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ヘッダー -->
+<header class="header">
+  <div class="brand">
+    <div class="title">会議室予約管理</div>
+    <div class="company">NETZ TOYOTA MIE</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-primary" onclick="openNewFromButton()">＋ 新規予約</button>
+    <button class="btn" onclick="openSearch()">🔍 検索</button>
+    <button class="btn" onclick="exportCSV()">CSV出力</button>
+    <button class="btn" onclick="goToday()">今日</button>
+    <button class="btn" onclick="refreshData()" title="最新データを取得">↻ 再読込</button>
+    <button class="btn btn-danger" onclick="doLogout()">ログアウト</button>
+  </div>
+</header>
+
+<!-- 日付ナビ -->
+<div class="date-nav">
+  <div class="date-display" id="dateDisplay"></div>
+  <div class="nav-controls" style="position:relative">
+    <button class="nav-btn" onclick="changeDate(-7)" title="1週間前">«</button>
+    <button class="nav-btn" onclick="changeDate(-1)" title="前日">‹</button>
+    <button class="date-trigger" id="dateTrigger" onclick="toggleCalendar(event)">
+      <span id="dateTriggerLabel">日付選択</span>
+    </button>
+    <button class="nav-btn" onclick="changeDate(1)" title="翌日">›</button>
+    <button class="nav-btn" onclick="changeDate(7)" title="1週間後">»</button>
+    <div class="cal-pop" id="calPop" onclick="event.stopPropagation()"></div>
+  </div>
+</div>
+
+<!-- メイン -->
+<main class="main">
+  <div class="loading" id="loadingIndicator">読み込み中...</div>
+  <div class="schedule-wrap">
+    <div class="schedule" id="schedule"></div>
+  </div>
+
+  <div class="footnote">
+    <p><strong>使用ルール</strong>：使用責任者とは、入力者名ではなく予約重複時などに対応できる使用者本人のお名前です。使用責任者は、準備や後片付けなど使用マナーの徹底をお願いします。</p>
+    <p style="margin-top:8px"><strong>操作方法</strong>：空いているセルをクリックすると予約入力ができます。既存の予約をクリックすると編集・削除ができます。時間帯は30分刻みで、複数コマにわたる予約も一度に登録できます。予約データは社員全員で共有されます。</p>
+  </div>
+</main>
+
+<!-- 予約モーダル -->
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">新規予約</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="conflict-warning" id="conflictWarning"></div>
+      <div class="form-row">
+        <label>会議室</label>
+        <select id="f-room"></select>
+      </div>
+      <div class="form-row-split">
+        <div class="form-row" style="margin-bottom:0">
+          <label>開始時刻</label>
+          <select id="f-start"></select>
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>終了時刻</label>
+          <select id="f-end"></select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:16px">
+        <label>使用責任者 <span style="color:var(--warn)">*</span></label>
+        <input type="text" id="f-user" placeholder="例：営企：渡辺">
+      </div>
+      <div class="form-row">
+        <label>使用内容 <span style="color:var(--warn)">*</span></label>
+        <select id="f-purpose" onchange="onPurposeChange()">
+          <option value="">-- 選択してください --</option>
+          <option value="会議">会議</option>
+          <option value="ミーティング">ミーティング</option>
+          <option value="来客">来客</option>
+          <option value="Web会議">Web会議</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="form-row" id="purposeOtherRow" style="display:none">
+        <label>使用内容（自由入力）</label>
+        <input type="text" id="f-purpose-other" placeholder="例：新入社員研修">
+      </div>
+      <div class="form-row">
+        <label>備考（任意）</label>
+        <textarea id="f-memo" placeholder="来客名・必要機材など"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="deleteBtn" onclick="deleteBooking()" style="display:none">削除</button>
+      <button class="btn" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveBooking()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 検索パネル -->
+<div class="search-panel" id="searchPanel">
+  <div class="search-header">
+    <h2 style="font-size:14px;font-weight:600;letter-spacing:.05em">予約検索</h2>
+    <button class="modal-close" onclick="closeSearch()">×</button>
+  </div>
+  <div class="search-body">
+    <input type="text" class="search-input" id="searchInput" placeholder="使用責任者・内容・備考で検索..." oninput="doSearchDebounced()">
+    <div class="search-results" id="searchResults">
+      <div class="search-empty">キーワードを入力すると過去〜将来の全予約から検索します</div>
+    </div>
+  </div>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// 設定（Cloudflare D1 本番API接続版）
+// ============================================================
+const API_BASE = 'https://kaigisitu-api.hanagatacyouitirou.workers.dev';
+const ROOMS = [
+  '大会議室','第2ﾐｰﾃｨﾝｸﾞﾙｰﾑ','リクルート室',
+  '新サービス工場2F','役員室','ZOOM ①','ZOOM ②'
+];
+const TIME_SLOTS = [];
+// 9:30 〜 18:30 の30分刻み
+for(let h=9; h<=18; h++){
+  for(let m of [0,30]){
+    if(h===9 && m===0) continue;
+    if(h===18 && m===30){
+      TIME_SLOTS.push('18:30～'); continue;
+    }
+    TIME_SLOTS.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+  }
+}
+const SESSION_KEY = 'netzmie_room_session_v2';
+
+// ============================================================
+// セッション管理（パスワードをセッション中メモリに保持）
+// ============================================================
+let sessionPassword = sessionStorage.getItem(SESSION_KEY) || null;
+
+// ============================================================
+// API呼び出し
+// ============================================================
+async function apiFetch(path, options = {}){
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+  if(sessionPassword){
+    headers['X-App-Password'] = sessionPassword;
+  }
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers,
+  });
+  const data = await res.json().catch(()=>null);
+  if(!res.ok){
+    const msg = (data && data.error) || `APIエラー (${res.status})`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+// 指定日の予約を取得
+async function fetchBookingsByDate(dateStr){
+  try{
+    const data = await apiFetch(`/api/bookings?date=${dateStr}`);
+    // サーバーの形式 → 画面側の形式に変換
+    // サーバー: { id, date, room, start_time, end_time, user, purpose, memo }
+    // 画面:     { id, room, start, end, user, purpose, memo }
+    return (data.bookings || data || []).map(b => ({
+      id: b.id,
+      room: b.room,
+      start: b.start_time || b.start,
+      end: b.end_time || b.end,
+      user: b.user,
+      purpose: b.purpose,
+      memo: b.memo || '',
+    }));
+  }catch(e){
+    console.error('fetchBookingsByDate error:', e);
+    showToast(e.message || 'データの取得に失敗しました', true);
+    return [];
+  }
+}
+
+// 予約作成
+async function createBookingApi(dateStr, b){
+  return apiFetch('/api/bookings', {
+    method: 'POST',
+    body: JSON.stringify({
+      date: dateStr,
+      room: b.room,
+      start_time: b.start,
+      end_time: b.end,
+      user: b.user,
+      purpose: b.purpose,
+      memo: b.memo || '',
+    }),
+  });
+}
+
+// 予約更新
+async function updateBookingApi(id, dateStr, b){
+  return apiFetch(`/api/bookings/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      date: dateStr,
+      room: b.room,
+      start_time: b.start,
+      end_time: b.end,
+      user: b.user,
+      purpose: b.purpose,
+      memo: b.memo || '',
+    }),
+  });
+}
+
+// 予約削除
+async function deleteBookingApi(id){
+  return apiFetch(`/api/bookings/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
+// 検索
+async function searchBookingsApi(query){
+  const data = await apiFetch(`/api/bookings/search?q=${encodeURIComponent(query)}`);
+  return (data.bookings || data || []).map(b => ({
+    date: b.date,
+    id: b.id,
+    room: b.room,
+    start: b.start_time || b.start,
+    end: b.end_time || b.end,
+    user: b.user,
+    purpose: b.purpose,
+    memo: b.memo || '',
+  }));
+}
+
+// 月間カレンダー用：指定月の予約のある日を取得
+async function fetchMonthBookingsApi(year, month){
+  // yearMonth形式: 2026-05
+  const ym = `${year}-${String(month+1).padStart(2,'0')}`;
+  try{
+    const data = await apiFetch(`/api/bookings?month=${ym}`);
+    return data.bookings || data || [];
+  }catch(e){
+    return [];
+  }
+}
+
+// ============================================================
+// キャッシュ（画面内で一時保持）
+// ============================================================
+const bookingsCache = {};  // { '2026-05-14': [...], ... }
+const monthHasBookings = {};  // { '2026-05': Set(['01','10',...]) }
+
+async function loadBookingsForDate(dateStr, forceRefresh=false){
+  if(!forceRefresh && bookingsCache[dateStr]){
+    return bookingsCache[dateStr];
+  }
+  setLoading(true);
+  const data = await fetchBookingsByDate(dateStr);
+  bookingsCache[dateStr] = data;
+  setLoading(false);
+  return data;
+}
+
+function invalidateCacheForDate(dateStr){
+  delete bookingsCache[dateStr];
+  // 月キャッシュも無効化
+  const ym = dateStr.substring(0,7);
+  delete monthHasBookings[ym];
+}
+
+function setLoading(show){
+  const el = document.getElementById('loadingIndicator');
+  if(!el) return;
+  if(show) el.classList.add('show');
+  else el.classList.remove('show');
+}
+
+// ============================================================
+// 認証
+// ============================================================
+async function doLogin(){
+  const pw = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  if(!pw){
+    errEl.textContent = 'パスワードを入力してください';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'ログイン中...';
+  // パスワードをテストするために軽いAPI呼び出しをする
+  sessionPassword = pw;
+  try{
+    // 今日の予約を取りに行って、認証が通るかテスト
+    const today = fmtDate(new Date());
+    await apiFetch(`/api/bookings?date=${today}`);
+    // OK
+    sessionStorage.setItem(SESSION_KEY, pw);
+    document.getElementById('loginOverlay').style.display = 'none';
+    init();
+  }catch(e){
+    sessionPassword = null;
+    sessionStorage.removeItem(SESSION_KEY);
+    if(e.message && (e.message.includes('認証') || e.message.includes('401') || e.message.includes('403'))){
+      errEl.textContent = 'パスワードが違います';
+    }else{
+      errEl.textContent = e.message || 'ログインに失敗しました';
+    }
+    document.getElementById('loginPassword').value = '';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'ログイン';
+  }
+}
+
+function doLogout(){
+  sessionPassword = null;
+  sessionStorage.removeItem(SESSION_KEY);
+  location.reload();
+}
+
+document.getElementById('loginPassword').addEventListener('keydown', e => {
+  if(e.key === 'Enter') doLogin();
+});
+
+// ============================================================
+// 日付操作
+// ============================================================
+let currentDate = new Date();
+currentDate.setHours(0, 0, 0, 0);
+
+function fmtDate(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtDisplay(d){
+  const wd = ['日','月','火','水','木','金','土'][d.getDay()];
+  const wcls = d.getDay()===0?'sun':(d.getDay()===6?'sat':'');
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日<span class="weekday ${wcls}">（${wd}）</span>`;
+}
+async function changeDate(days){
+  currentDate.setDate(currentDate.getDate()+days);
+  await renderAll();
+}
+async function goToday(){
+  currentDate = new Date();
+  currentDate.setHours(0,0,0,0);
+  await renderAll();
+}
+
+async function refreshData(){
+  const dateStr = fmtDate(currentDate);
+  invalidateCacheForDate(dateStr);
+  await renderAll();
+  showToast('最新データを取得しました');
+}
+
+// ============================================================
+// 月間カレンダーポップアップ
+// ============================================================
+let calViewYear, calViewMonth;
+
+async function toggleCalendar(e){
+  e.stopPropagation();
+  const pop = document.getElementById('calPop');
+  if(pop.classList.contains('open')){
+    pop.classList.remove('open');
+    return;
+  }
+  calViewYear = currentDate.getFullYear();
+  calViewMonth = currentDate.getMonth();
+  await renderCalendar();
+  const trigger = document.getElementById('dateTrigger');
+  const rect = trigger.getBoundingClientRect();
+  pop.style.left = (trigger.offsetLeft) + 'px';
+  pop.style.top = (trigger.offsetTop + trigger.offsetHeight + 4) + 'px';
+  if(rect.left + 320 > window.innerWidth){
+    pop.style.left = 'auto';
+    pop.style.right = '0px';
+  }else{
+    pop.style.right = 'auto';
+  }
+  pop.classList.add('open');
+}
+
+function closeCalendar(){
+  document.getElementById('calPop').classList.remove('open');
+}
+
+async function calNav(delta){
+  calViewMonth += delta;
+  if(calViewMonth < 0){ calViewMonth = 11; calViewYear--; }
+  if(calViewMonth > 11){ calViewMonth = 0; calViewYear++; }
+  await renderCalendar();
+}
+
+async function renderCalendar(){
+  const pop = document.getElementById('calPop');
+  const firstDay = new Date(calViewYear, calViewMonth, 1);
+  const lastDay = new Date(calViewYear, calViewMonth+1, 0);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = lastDay.getDate();
+  const prevLastDay = new Date(calViewYear, calViewMonth, 0).getDate();
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const selectedStr = fmtDate(currentDate);
+
+  // 月間の予約ドット情報を取得
+  const ym = `${calViewYear}-${String(calViewMonth+1).padStart(2,'0')}`;
+  let daysWithBookings = monthHasBookings[ym];
+  if(!daysWithBookings){
+    const list = await fetchMonthBookingsApi(calViewYear, calViewMonth);
+    daysWithBookings = new Set();
+    list.forEach(b => {
+      if(b.date && b.date.startsWith(ym)){
+        daysWithBookings.add(b.date.substring(8,10));
+      }
+    });
+    monthHasBookings[ym] = daysWithBookings;
+  }
+
+  const wdLabels = ['日','月','火','水','木','金','土'];
+  let html = `
+    <div class="cal-head">
+      <div class="cal-title">${calViewYear}年 ${calViewMonth+1}月</div>
+      <div class="cal-nav">
+        <button onclick="calNav(-1)" title="前月">‹</button>
+        <button onclick="calJumpToday()" title="今日">●</button>
+        <button onclick="calNav(1)" title="翌月">›</button>
+      </div>
+    </div>
+    <div class="cal-grid">
+  `;
+  wdLabels.forEach((w,i)=>{
+    const cls = i===0?'sun':(i===6?'sat':'');
+    html += `<div class="cal-wd ${cls}">${w}</div>`;
+  });
+
+  for(let i=0; i<startWeekday; i++){
+    const d = prevLastDay - startWeekday + i + 1;
+    html += `<div class="cal-day other">${d}</div>`;
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    const date = new Date(calViewYear, calViewMonth, d);
+    const dateStr = fmtDate(date);
+    const wd = date.getDay();
+    const wdCls = wd===0?'sun':(wd===6?'sat':'');
+    const isToday = date.getTime()===today.getTime();
+    const isSelected = dateStr === selectedStr;
+    const hasBooking = daysWithBookings.has(String(d).padStart(2,'0'));
+    const classes = ['cal-day', wdCls];
+    if(isToday) classes.push('today');
+    if(isSelected) classes.push('selected');
+    html += `<div class="${classes.join(' ')}" onclick="calSelectDate('${dateStr}')">${d}${hasBooking?'<div class="cal-dot"></div>':''}</div>`;
+  }
+  const totalCells = startWeekday + daysInMonth;
+  const rest = (7 - totalCells % 7) % 7;
+  for(let i=1; i<=rest; i++){
+    html += `<div class="cal-day other">${i}</div>`;
+  }
+  html += `</div>`;
+  pop.innerHTML = html;
+}
+
+async function calSelectDate(dateStr){
+  currentDate = new Date(dateStr);
+  currentDate.setHours(0,0,0,0);
+  closeCalendar();
+  await renderAll();
+}
+
+async function calJumpToday(){
+  const t = new Date();
+  calViewYear = t.getFullYear();
+  calViewMonth = t.getMonth();
+  await renderCalendar();
+}
+
+// ============================================================
+// スケジュール描画
+// ============================================================
+async function renderSchedule(){
+  const sched = document.getElementById('schedule');
+  sched.innerHTML = '';
+  const dateStr = fmtDate(currentDate);
+  const bookings = await loadBookingsForDate(dateStr);
+
+  // ヘッダー行
+  const timeHead = document.createElement('div');
+  timeHead.className = 'sch-header';
+  timeHead.innerHTML = '時間';
+  sched.appendChild(timeHead);
+  ROOMS.forEach(r => {
+    const h = document.createElement('div');
+    h.className = 'sch-header';
+    h.textContent = r;
+    sched.appendChild(h);
+  });
+
+  // 予約マップを作る
+  const slotMap = ROOMS.map(() => new Array(TIME_SLOTS.length).fill(null));
+  bookings.forEach(b => {
+    const roomIdx = ROOMS.indexOf(b.room);
+    if(roomIdx < 0) return;
+    const startIdx = TIME_SLOTS.indexOf(b.start);
+    const endIdx = TIME_SLOTS.indexOf(b.end);
+    if(startIdx < 0) return;
+    const fillUntil = endIdx < 0 ? TIME_SLOTS.length : endIdx;
+    for(let i = startIdx; i < fillUntil; i++){
+      slotMap[roomIdx][i] = { booking: b, isStart: i === startIdx };
+    }
+  });
+
+  // 時間行
+  TIME_SLOTS.forEach((ts, tIdx) => {
+    const tc = document.createElement('div');
+    tc.className = 'sch-time';
+    tc.textContent = ts;
+    sched.appendChild(tc);
+
+    ROOMS.forEach((room, rIdx) => {
+      const cell = document.createElement('div');
+      cell.className = 'sch-cell';
+      const slot = slotMap[rIdx][tIdx];
+      if(slot){
+        cell.classList.add('booked');
+        if(slot.isStart){
+          const b = slot.booking;
+          const box = document.createElement('div');
+          box.className = 'booking';
+          const startIdx = TIME_SLOTS.indexOf(b.start);
+          const endIdx = TIME_SLOTS.indexOf(b.end);
+          const span = (endIdx < 0 ? TIME_SLOTS.length : endIdx) - startIdx;
+          box.style.position = 'absolute';
+          box.style.top = '2px';
+          box.style.left = '2px';
+          box.style.right = '2px';
+          box.style.height = `calc(${span*100}% - 4px)`;
+          box.style.zIndex = '1';
+          box.innerHTML = `
+            <div class="b-title">${escapeHTML(b.purpose)}</div>
+            <div class="b-meta">${escapeHTML(b.user)}</div>
+            ${span >= 2 ? `<div class="b-meta">${b.start}〜${b.end || '終日'}</div>` : ''}
+          `;
+          box.onclick = (e) => { e.stopPropagation(); openEdit(b); };
+          cell.appendChild(box);
+        }
+        cell.onclick = () => openEdit(slot.booking);
+      }else{
+        cell.onclick = () => openNew(room, ts);
+      }
+      sched.appendChild(cell);
+    });
+  });
+}
+
+function escapeHTML(s){
+  return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============================================================
+// モーダル
+// ============================================================
+let editingBookingId = null;
+
+function openNew(room, startTime){
+  editingBookingId = null;
+  document.getElementById('modalTitle').textContent = '新規予約';
+  document.getElementById('deleteBtn').style.display = 'none';
+  fillRoomSelect();
+  fillTimeSelects();
+  document.getElementById('f-room').value = room;
+  document.getElementById('f-start').value = startTime;
+  const sIdx = TIME_SLOTS.indexOf(startTime);
+  const eIdx = Math.min(sIdx + 2, TIME_SLOTS.length - 1);
+  document.getElementById('f-end').value = TIME_SLOTS[eIdx];
+  document.getElementById('f-user').value = '';
+  document.getElementById('f-purpose').value = '';
+  document.getElementById('f-purpose-other').value = '';
+  document.getElementById('purposeOtherRow').style.display = 'none';
+  document.getElementById('f-memo').value = '';
+  document.getElementById('conflictWarning').classList.remove('show');
+  document.getElementById('bookingModal').classList.add('open');
+}
+
+function openNewFromButton(){
+  openNew(ROOMS[0], TIME_SLOTS[0]);
+}
+
+function onPurposeChange(){
+  const val = document.getElementById('f-purpose').value;
+  document.getElementById('purposeOtherRow').style.display = (val === 'その他') ? 'block' : 'none';
+}
+
+function openEdit(booking){
+  editingBookingId = booking.id;
+  document.getElementById('modalTitle').textContent = '予約編集';
+  document.getElementById('deleteBtn').style.display = 'inline-block';
+  fillRoomSelect();
+  fillTimeSelects();
+  document.getElementById('f-room').value = booking.room;
+  document.getElementById('f-start').value = booking.start;
+  document.getElementById('f-end').value = booking.end || '18:30～';
+  document.getElementById('f-user').value = booking.user;
+  const PRESET = ['会議','ミーティング','来客','Web会議'];
+  if(PRESET.includes(booking.purpose)){
+    document.getElementById('f-purpose').value = booking.purpose;
+    document.getElementById('f-purpose-other').value = '';
+    document.getElementById('purposeOtherRow').style.display = 'none';
+  }else{
+    document.getElementById('f-purpose').value = 'その他';
+    document.getElementById('f-purpose-other').value = booking.purpose || '';
+    document.getElementById('purposeOtherRow').style.display = 'block';
+  }
+  document.getElementById('f-memo').value = booking.memo || '';
+  document.getElementById('conflictWarning').classList.remove('show');
+  document.getElementById('bookingModal').classList.add('open');
+}
+
+function closeModal(){
+  document.getElementById('bookingModal').classList.remove('open');
+}
+
+function fillRoomSelect(){
+  const sel = document.getElementById('f-room');
+  sel.innerHTML = ROOMS.map(r => `<option>${r}</option>`).join('');
+}
+function fillTimeSelects(){
+  const s = document.getElementById('f-start');
+  const e = document.getElementById('f-end');
+  s.innerHTML = TIME_SLOTS.slice(0,-1).map(t=>`<option>${t}</option>`).join('');
+  e.innerHTML = TIME_SLOTS.slice(1).map(t=>`<option>${t}</option>`).join('');
+}
+
+async function checkConflict(room, start, end, excludeId){
+  const dateStr = fmtDate(currentDate);
+  const bookings = await loadBookingsForDate(dateStr);
+  const sIdx = TIME_SLOTS.indexOf(start);
+  const eIdx = TIME_SLOTS.indexOf(end);
+  const eFinal = eIdx < 0 ? TIME_SLOTS.length : eIdx;
+  for(const b of bookings){
+    if(b.id === excludeId) continue;
+    if(b.room !== room) continue;
+    const bs = TIME_SLOTS.indexOf(b.start);
+    const be = TIME_SLOTS.indexOf(b.end);
+    const beFinal = be < 0 ? TIME_SLOTS.length : be;
+    if(sIdx < beFinal && eFinal > bs){
+      return b;
+    }
+  }
+  return null;
+}
+
+async function saveBooking(){
+  const room = document.getElementById('f-room').value;
+  const start = document.getElementById('f-start').value;
+  const end = document.getElementById('f-end').value;
+  const user = document.getElementById('f-user').value.trim();
+  const purposeSelect = document.getElementById('f-purpose').value;
+  const purpose = (purposeSelect === 'その他')
+    ? document.getElementById('f-purpose-other').value.trim()
+    : purposeSelect;
+  const memo = document.getElementById('f-memo').value.trim();
+
+  if(!user){
+    showToast('使用責任者を入力してください', true);
+    return;
+  }
+  if(!purposeSelect){
+    showToast('使用内容を選択してください', true);
+    return;
+  }
+  if(purposeSelect === 'その他' && !purpose){
+    showToast('使用内容（自由入力）を入力してください', true);
+    return;
+  }
+  if(TIME_SLOTS.indexOf(start) >= TIME_SLOTS.indexOf(end)){
+    showToast('終了時刻は開始時刻より後にしてください', true);
+    return;
+  }
+
+  // 重複チェック
+  const conflict = await checkConflict(room, start, end, editingBookingId);
+  if(conflict){
+    const warn = document.getElementById('conflictWarning');
+    warn.innerHTML = `⚠ 同じ会議室ですでに予約があります：<br><strong>${escapeHTML(conflict.start)}〜${escapeHTML(conflict.end)} ${escapeHTML(conflict.purpose)}（${escapeHTML(conflict.user)}）</strong><br>時間帯を変更するか、使用責任者にご相談ください。`;
+    warn.classList.add('show');
+    return;
+  }
+
+  const dateStr = fmtDate(currentDate);
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = '保存中...';
+  try{
+    const payload = { room, start, end, user, purpose, memo };
+    if(editingBookingId){
+      await updateBookingApi(editingBookingId, dateStr, payload);
+    }else{
+      await createBookingApi(dateStr, payload);
+    }
+    invalidateCacheForDate(dateStr);
+    closeModal();
+    await renderSchedule();
+    showToast(editingBookingId ? '予約を更新しました' : '予約を登録しました');
+  }catch(e){
+    showToast(e.message || '保存に失敗しました', true);
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.textContent = '保存';
+  }
+}
+
+async function deleteBooking(){
+  if(!editingBookingId) return;
+  if(!confirm('この予約を削除しますか？')) return;
+  const dateStr = fmtDate(currentDate);
+  try{
+    await deleteBookingApi(editingBookingId);
+    invalidateCacheForDate(dateStr);
+    closeModal();
+    await renderSchedule();
+    showToast('予約を削除しました');
+  }catch(e){
+    showToast(e.message || '削除に失敗しました', true);
+  }
+}
+
+// ============================================================
+// 検索
+// ============================================================
+function openSearch(){
+  document.getElementById('searchPanel').classList.add('open');
+  document.getElementById('searchInput').focus();
+}
+function closeSearch(){
+  document.getElementById('searchPanel').classList.remove('open');
+}
+
+let searchTimer = null;
+function doSearchDebounced(){
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(doSearch, 400);
+}
+
+async function doSearch(){
+  const q = document.getElementById('searchInput').value.trim();
+  const results = document.getElementById('searchResults');
+  if(!q){
+    results.innerHTML = '<div class="search-empty">キーワードを入力すると過去〜将来の全予約から検索します</div>';
+    return;
+  }
+  results.innerHTML = '<div class="search-loading">検索中...</div>';
+  try{
+    const hits = await searchBookingsApi(q);
+    if(hits.length === 0){
+      results.innerHTML = '<div class="search-empty">該当する予約が見つかりません</div>';
+      return;
+    }
+    // 日付順にソート
+    hits.sort((a,b) => a.date.localeCompare(b.date));
+    results.innerHTML = hits.map(b => {
+      const d = new Date(b.date);
+      const wd = ['日','月','火','水','木','金','土'][d.getDay()];
+      return `<div class="search-item" onclick="jumpTo('${b.date}', '${b.id}')">
+        <div class="s-date">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}（${wd}） ${escapeHTML(b.start)}〜${escapeHTML(b.end)}</div>
+        <div class="s-title">${escapeHTML(b.purpose)}</div>
+        <div class="s-meta">${escapeHTML(b.room)} ｜ ${escapeHTML(b.user)}</div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    results.innerHTML = `<div class="search-empty">検索に失敗しました：${escapeHTML(e.message)}</div>`;
+  }
+}
+
+async function jumpTo(dateStr, bookingId){
+  currentDate = new Date(dateStr);
+  currentDate.setHours(0,0,0,0);
+  closeSearch();
+  await renderAll();
+  setTimeout(async ()=>{
+    const bookings = await loadBookingsForDate(dateStr);
+    const b = bookings.find(x=>x.id===bookingId);
+    if(b) openEdit(b);
+  }, 200);
+}
+
+// ============================================================
+// CSVエクスポート
+// ============================================================
+async function exportCSV(){
+  try{
+    setLoading(true);
+    // 全件検索で取得（空クエリ or 全件エンドポイントがあればそちら）
+    const all = await apiFetch('/api/bookings/all').catch(async () => {
+      // /api/bookings/all が無い場合は search で空検索
+      return await apiFetch('/api/bookings/search?q=');
+    });
+    setLoading(false);
+    const list = all.bookings || all || [];
+    if(list.length === 0){
+      showToast('出力する予約データがありません', true);
+      return;
+    }
+    const rows = [['日付','会議室','開始','終了','使用責任者','使用内容','備考']];
+    list.sort((a,b) => {
+      const d = (a.date || '').localeCompare(b.date || '');
+      if(d !== 0) return d;
+      return (a.start_time || a.start || '').localeCompare(b.start_time || b.start || '');
+    });
+    list.forEach(b => {
+      rows.push([
+        b.date, b.room,
+        b.start_time || b.start,
+        b.end_time || b.end,
+        b.user, b.purpose, b.memo || ''
+      ]);
+    });
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    const bom = '\uFEFF';
+    const blob = new Blob([bom+csv], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `会議室予約_${fmtDate(new Date())}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSVをダウンロードしました');
+  }catch(e){
+    setLoading(false);
+    showToast(e.message || 'CSV出力に失敗しました', true);
+  }
+}
+
+// ============================================================
+// トースト
+// ============================================================
+let toastTimer = null;
+function showToast(msg, isError=false){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if(isError) t.classList.add('error');
+  else t.classList.remove('error');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ============================================================
+// 初期化
+// ============================================================
+async function renderAll(){
+  document.getElementById('dateDisplay').innerHTML = fmtDisplay(currentDate);
+  const d = currentDate;
+  document.getElementById('dateTriggerLabel').textContent =
+    `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  await renderSchedule();
+}
+
+async function init(){
+  await renderAll();
+}
+
+// セッション確認（既にログイン済みか）
+if(sessionPassword){
+  document.getElementById('loginOverlay').style.display = 'none';
+  init().catch(e => {
+    // セッションが切れていたら再ログイン画面
+    sessionPassword = null;
+    sessionStorage.removeItem(SESSION_KEY);
+    document.getElementById('loginOverlay').style.display = 'flex';
+  });
+}
+
+// ESCで閉じる
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    closeModal();
+    closeSearch();
+    closeCalendar();
+  }
+});
+
+document.addEventListener('click',e=>{
+  const pop = document.getElementById('calPop');
+  const trigger = document.getElementById('dateTrigger');
+  if(!pop.classList.contains('open')) return;
+  if(pop.contains(e.target) || trigger.contains(e.target)) return;
+  closeCalendar();
+});
+</script>
+
+</body>
+</html>
